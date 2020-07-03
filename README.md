@@ -1,4 +1,6 @@
-# jjui-love2d version 0.2.0  
+# jjui-love2d 
+version 0.2.0  
+  
 ## An easy to use UI library built for love2d.  
 See the wiki for how to use at https://github.com/JJSax/jjui-love2d/wiki  
   
