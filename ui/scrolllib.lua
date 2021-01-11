@@ -3,6 +3,7 @@ local lg = love.graphics
 
 local scroll = {}
 scroll.__index = scroll
+scroll._version = "0.4.0"
 
 scroll.font = lg.newFont(16)
 
@@ -21,7 +22,7 @@ function scroll:checkInBounds(x,y)
 	return false
 end
 
-function scroll:newViewport(x, y, width, height, align)
+function scroll.newViewport(x, y, width, height, align)
 	return setmetatable(
 	{
 		x = x, 
