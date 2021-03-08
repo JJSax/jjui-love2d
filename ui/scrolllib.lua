@@ -13,7 +13,7 @@
 local lg = love.graphics
 
 local scroll = {
-	__version = "0.5.501"
+	__version = "0.5.6"
 }
 scroll.__index = scroll
 scroll.font = lg.newFont(16)
@@ -192,6 +192,13 @@ function scroll:getViewportHeightPercent()
 	-- return 0-1 of how much viewport shows of content height
 	local theight = self:getContentHeight()
 	return self.height / self:getContentHeight() < 1 and self.height / self:getContentHeight() or 1
+end
+function scroll:getVerticleShown()
+	-- returns bounds of what is shown in viewport.
+	return self.yScroll, self.yScroll - self.height
+end
+function scroll:getHorizontalShown()
+	return
 end
 
 ----------------------
@@ -379,7 +386,6 @@ function scroll:scrollbarUpdate(dt)
 end
 
 function scroll:draw(f, width, height)
-
 	lg.push()
 	lg.setScissor(self:getViewport())
 	lg.translate(self.xScroll + self.x, self.yScroll + self.y)
@@ -396,20 +402,25 @@ function scroll:draw(f, width, height)
 		-- meant to be a shortcut way to draw simple text
 		local prevFont = lg.getFont() -- courtesy font reset
 
+		local top, bottom = self:getVerticleShown()
 		local height = self.topBuffer
+		local _, previousHeight = self:getTextDimensions(self.contents.textArray[1])
 		for k,v in ipairs(self.contents.textArray) do
-			lg.setFont(v.font or self.font)
-			lg.printf(
-				v.text,
-				self.leftBuffer,
-				height,
-				self.width - self.leftBuffer - self.rightBuffer,
-				self.align
-			)
+			if height > -top - previousHeight * 2 then
+				lg.setFont(v.font or self.font)
+				lg.printf(
+					v.text,
+					self.leftBuffer,
+					height,
+					self.width - self.leftBuffer - self.rightBuffer,
+					self.align
+				)
+				if height > -bottom then break end
+			end
 			local w, h = self:getTextDimensions(v)
+			previousHeight = h + self.contents.lineBuffer
 			height = height + h + self.contents.lineBuffer
 		end
-
 		lg.setFont(prevFont) -- courtesy font reset
 	end
 
