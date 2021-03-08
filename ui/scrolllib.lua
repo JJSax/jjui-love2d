@@ -13,7 +13,7 @@
 local lg = love.graphics
 
 local scroll = {
-	__version = "0.5.5"
+	__version = "0.5.501"
 }
 scroll.__index = scroll
 scroll.font = lg.newFont(16)
@@ -223,7 +223,7 @@ end
 ------- Trough methods
 ----------------------
 
-function scroll:troughScroll(x, y, button)
+function scroll:troughClick(x, y, button)
 	-- put in mousepressed
 	-- when clicking the scrollbar this will will follow what is set in self.scrollbar.troughMode
 	-- sets destination, whether immediately jumping, or smoothly transitioning.
