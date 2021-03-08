@@ -13,7 +13,7 @@
 local lg = love.graphics
 
 local scroll = {
-	__version = "0.5.6"
+	__version = "0.5.65"
 }
 scroll.__index = scroll
 scroll.font = lg.newFont(16)
@@ -385,11 +385,20 @@ function scroll:scrollbarUpdate(dt)
 	self:thumbScroll(dt)
 end
 
+function scroll:mousepressed(x, y, button)
+	self:thumbClick(x, y, button)
+	self:troughClick(x, y, button)
+end
+
+function scroll:mousereleased(x, y, button)
+	self:thumbRelease(x, y, button)
+end
+
 function scroll:draw(f, width, height)
 	lg.push()
 	lg.setScissor(self:getViewport())
 	lg.translate(self.xScroll + self.x, self.yScroll + self.y)
-	lg.setColor(1,1,1,1)
+	lg.setColor(self.contents.textColor)
 	if type(f) == "function" then
 		f()
 	elseif self.contents.image then
