@@ -1,7 +1,7 @@
 
 local button = {}
 button.__index = button
-button._version = "0.6.1"
+button._version = "0.6.11"
 
 local default = {
 	font = lg.getFont(), rotation = 0,
@@ -318,8 +318,7 @@ function button:mousereleased(x, y, key, istouch, presses)
 end
 
 function button:keypressed(key, istouch, presses)
-	local mx, my = love.mouse.getPosition()
-	if self:inBounds(x,y) then
+	if self:inBounds(love.mouse.getPosition()) then
 		if self:keyPressed(key) then
 			self.origPress = true
 			self:onPress()
@@ -327,8 +326,7 @@ function button:keypressed(key, istouch, presses)
 	end
 end
 function button:keyreleased(key, istouch, presses)
-	local mx, my = love.mouse.getPosition()
-	if self:inBounds(x,y) then
+	if self:inBounds(love.mouse.getPosition()) then
 		if self.requireSelfClick and self.origPress or not self.requireSelfClick then
 			if self:keyPressed(key) then
 				self:onRelease()
