@@ -13,7 +13,7 @@
 local lg = love.graphics
 
 local scroll = {
-	__version = "0.5.65"
+	__version = "0.5.655"
 }
 scroll.__index = scroll
 scroll.font = lg.newFont(16)
@@ -193,7 +193,7 @@ function scroll:getViewportHeightPercent()
 	local theight = self:getContentHeight()
 	return self.height / self:getContentHeight() < 1 and self.height / self:getContentHeight() or 1
 end
-function scroll:getVerticleShown()
+function scroll:getVerticalShown()
 	-- returns bounds of what is shown in viewport.
 	return self.yScroll, self.yScroll - self.height
 end
@@ -221,7 +221,7 @@ function scroll:getScrollPercent()
 end
 function scroll:getBarClickPercent(x, y)
 	-- returns 0-1 percent of where the scrollbar was clicked.
-	if self:checkInBounds(x, y) == "trough" then
+	if self:inBounds(x, y) == "trough" then
 		return math.abs((y - self.scrollbar.y) / self.scrollbar.height)
 	end
 end
@@ -326,7 +326,7 @@ end
 ------ General methods
 ----------------------
 
-function scroll:checkInBounds(x,y)
+function scroll:inBounds(x,y)
 	if BoundCheck(x, y, self:getViewport()) then
 		return "viewport"
 	elseif self.scrollbar and BoundCheck(x, y, self:getScrollbar()) then
@@ -380,7 +380,7 @@ function scroll:getContentHeight()
 	end
 end
 
-function scroll:scrollbarUpdate(dt)
+function scroll:update(dt)
 	self:troughUpdate(dt)
 	self:thumbScroll(dt)
 end
@@ -394,11 +394,15 @@ function scroll:mousereleased(x, y, button)
 	self:thumbRelease(x, y, button)
 end
 
+-- function scroll:wheelmoved(x, y)
+
+-- end
+
 function scroll:draw(f, width, height)
 	lg.push()
 	lg.setScissor(self:getViewport())
 	lg.translate(self.xScroll + self.x, self.yScroll + self.y)
-	lg.setColor(self.contents.textColor)
+	lg.setColor(1,1,1,1)
 	if type(f) == "function" then
 		f()
 	elseif self.contents.image then
@@ -411,7 +415,7 @@ function scroll:draw(f, width, height)
 		-- meant to be a shortcut way to draw simple text
 		local prevFont = lg.getFont() -- courtesy font reset
 
-		local top, bottom = self:getVerticleShown()
+		local top, bottom = self:getVerticalShown()
 		local height = self.topBuffer
 		local _, previousHeight = self:getTextDimensions(self.contents.textArray[1])
 		for k,v in ipairs(self.contents.textArray) do
