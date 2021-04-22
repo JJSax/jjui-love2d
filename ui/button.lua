@@ -1,7 +1,9 @@
 
 local button = {}
 button.__index = button
-button._version = "0.6.11"
+button._version = "0.6.12"
+
+local lg = love.graphics
 
 local default = {
 	font = lg.getFont(), rotation = 0,
