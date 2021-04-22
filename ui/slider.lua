@@ -10,10 +10,11 @@
 local slider = {}
 slider.__index = slider
 
-slider._version = "0.2.1"
+slider._version = "0.2.11"
 
 -- aliases
 local lm = love.mouse
+local lg = love.graphics
 
 
 --------------------------------
@@ -50,7 +51,7 @@ end
 --------------------------------
 -- if you desire custom segment locations, (array) segments to designate where they will be 0-1.
 -- example: {0, 0.1, 0.9, 1} puts segments at the start, 10% in, 90% in and at the end.
-function slider:newHorizontalSlider(x, y, width, height, segments)
+function slider.newHorizontalSlider(x, y, width, height, segments)
 	if not segments then
 		local segments = {}
 		for i = 0, width do
@@ -89,7 +90,7 @@ end
 
 -- if you desire custom segment locations, (array) segments to designate where they will be 0-1.
 -- example: {0, 0.1, 0.9, 1} puts segments at the start, 10% in, 90% in and at the end.
-function slider:newVerticleSlider(x, y, width, height, segments)
+function slider.newVerticalSlider(x, y, width, height, segments)
 	if not segments then
 		local segments = {}
 		for i = 0, width do
@@ -109,7 +110,7 @@ function slider:newVerticleSlider(x, y, width, height, segments)
 		knobScale = {1,1},
 		fillColor = {0.7, 0.1, 0.1, 1},
 		fill = 0, -- percent 0-1
-		baseColor = {},
+		baseColor = {0.65,0.65,0.65,0.7},
 		baseImage = nil,
 		minKnobColor = {1,1,1,1},
 		maxKnobColor = {1,1,1,1},
