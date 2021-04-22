@@ -1,7 +1,7 @@
 
 local uiSet = {}
 uiSet.__index = uiSet
-uiSet._version = "0.0.15"
+uiSet._version = "0.0.2"
 
 -------------------------------------------
 -------------Local Functions---------------
@@ -55,8 +55,11 @@ end
 -------------Common Functions---------------
 --------------------------------------------
 
-function uiSet:add(object)
-	table.insert(self.objects, object)
+function uiSet:add(...)
+	local object = {...}
+	for i = 1, #object do
+		table.insert(self.objects, object[i])
+	end
 end
 
 ---------------------
