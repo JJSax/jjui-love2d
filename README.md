@@ -26,7 +26,7 @@ See the wiki for how to use at https://github.com/JJSax/jjui-love2d/wiki
    - Versatile: you can pass image as path to the image, or the image itself.  
    - And more! See wiki for usage.  
   ##
-  ###### Circle Buttons: coming soon
+  ###### Circle Buttons: have same features as rectangle buttons
   ##
   ###### Sliders:  
    - Set verticle or horizontal sliders.  
@@ -41,7 +41,8 @@ See the wiki for how to use at https://github.com/JJSax/jjui-love2d/wiki
    - Scrollbar shows how much of the content you are viewing, and your position in the content.  
   ##
   ###### Todos:  
-  - Add Circle Buttons.  
+  - add UI sets
+  - add dial menu
   ##
   
   
