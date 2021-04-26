@@ -3,11 +3,12 @@
 
 local slider = {}
 slider.__index = slider
-slider._version = "0.3.43"
+slider._version = "0.3.5"
 
 -- aliases
 local lm = love.mouse
 local lg = love.graphics
+local ORIGIN = {x = 0, y = 0}
 
 
 --------------------------------
@@ -50,7 +51,7 @@ end
 ----------Constructors----------
 --------------------------------
 
-function slider.new(x, y, angle, length, width, segments)
+function slider.new(x1, y1, angle, length, width, segments)
 	-- slider at any angle
 
 	-- segments not implimented yet.  
@@ -68,8 +69,9 @@ function slider.new(x, y, angle, length, width, segments)
 	local b = {vector(angle, length)}
 
 	local default = {
-		a = {x = x, y = y},
-		b = {x = b[1] + x, y = b[2] + y},
+		parent = ORIGIN,
+		a = {x = x1, y = y1},
+		b = {x = b[1] + x1, y = b[2] + y1},
 		angle = angle, length = length,
 		width = width or 5, -- how wide the slider is.
 
@@ -115,13 +117,16 @@ function slider:draw()
 	lg.setColor(self.baseColor)
 	lg.setLineWidth(self.width)
 
-	lg.line(self.a.x, self.a.y, self.b.x, self.b.y)
+	local ax, ay, bx, by = self.a.x + self.parent.x, self.a.y + self.parent.y,
+		self.b.x + self.parent.x, self.b.y + self.parent.y
+
+	lg.line(ax, ay, bx, by)
 
 	lg.setColor(self.fillColor)
 
-	local bx, by = vector(angle(self.a.x, self.a.y, self.b.x, self.b.y), self.fill * self.length)
-	bx, by = bx + self.a.x, by + self.a.y
-	lg.line(self.a.x, self.a.y, bx, by)
+	local bx, by = vector(angle(ax, ay, bx, by), self.fill * self.length)
+	bx, by = bx + ax, by + ay
+	lg.line(ax, ay, bx, by)
 
 
 	if self.knobImage then
@@ -163,14 +168,15 @@ end
 function slider:nearestPointToLine(px, py) -- for geometric line.
 
 	-- returns a point on the infinite line nearest px, py
-
-	local a_p = {px - self.a.x, py - self.a.y}
-	local a_b = {self.b.x - self.a.x, self.b.y - self.a.y}
+	local ax, ay, bx, by = self.a.x + self.parent.x, self.a.y + self.parent.y,
+		self.b.x + self.parent.x, self.b.y + self.parent.y
+	local a_p = {px - ax, py - ay}
+	local a_b = {bx - ax, by - ay}
 	local atb2 = a_b[1]^2 + a_b[2]^2 -- same as distance
 	local atp_dot_atb = a_p[1] * a_b[1] + a_p[2] * a_b[2]
 	local t = atp_dot_atb / atb2
 
-	return self.a.x + a_b[1] * t, self.a.y + a_b[2] * t
+	return ax + a_b[1] * t, ay + a_b[2] * t
 end
 
 function slider:distanceToLine(px, py) -- geometric line
@@ -180,12 +186,14 @@ end
 
 function slider:pointFill(px, py)
 	-- point px, py to fill percent 0-1 from point
-	-- gets the fill level of px, py on slider.
+	-- gets the fill level of px, py on slider.	
+	local ax, ay, bx, by = self.a.x + self.parent.x, self.a.y + self.parent.y,
+		self.b.x + self.parent.x, self.b.y + self.parent.y
 	local npx, npy = self:nearestPointToLine(px, py)
-	local a_b = distance(self.a.x, self.a.y, self.b.x, self.b.y, false)
-	local a_p = distance(self.a.x, self.a.y, npx, npy, false)
-	local a_np = distance(self.a.x, self.a.y, npx, npy, false)
-	local b_np = distance(self.b.x, self.b.y, npx, npy, false)
+	local a_b = distance(ax, ay, bx, by, false)
+	local a_p = distance(ax, ay, npx, npy, false)
+	local a_np = distance(ax, ay, npx, npy, false)
+	local b_np = distance(bx, by, npx, npy, false)
 
 	if a_np < a_b and b_np < a_b then return a_p / a_b end -- percent 0-1
 	if a_np < b_np then return 0 end -- clamp
@@ -194,18 +202,17 @@ end
 
 function slider:setPosition(x, y)
 	local b = {vector(self.angle, self.length)}
-	self.a = {x = x, y = y}
-	self.b = {x = b[1] + x, y = b[2] + y}
+	self.a = {x = x + self.parent.x, y = y + self.parent.y}
+	self.b = {x = b[1] + x + self.parent.x, y = b[2] + y + self.parent.y}
 end
-
 --------------------------------
 ---------Get functions----------
 --------------------------------
 
-function slider:inBounds(mx, my) 
+function slider:inBounds(mx, my)
 	local npx, npy = self:nearestPointToLine(mx, my)
-	local np_a = distance(npx, npy, self.a.x, self.a.y, false)
-	local np_b = distance(npx, npy, self.b.x, self.b.y, false)
+	local np_a = distance(npx, npy, self.a.x + self.parent.x, self.a.y + self.parent.y, false)
+	local np_b = distance(npx, npy, self.b.x + self.parent.x, self.b.y + self.parent.y, false)
 
 	return self:distanceToLine(mx, my) <= self.hoverPerpendicularBuffer + self.width and
 		np_b < self.hoverParallelBuffer + self.length and np_a < self.hoverParallelBuffer + self.length
@@ -249,7 +256,7 @@ end
 function slider:setAngle(angle)
 	self.angle = angle
 	local b = {vector(self.angle, self.length)}
-	self.b = {x = b[1] + self.a.x, y = b[2] + self.a.y}
+	self.b = {x = b[1] + self.a.x + self.parent.x, y = b[2] + self.a.y + self.parent.y}
 end
 
 function slider:addAngle(angle)
