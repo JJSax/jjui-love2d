@@ -1,13 +1,13 @@
 local dial = {}
 dial.__index = dial
-dial._version = "0.3.6"
+dial._version = "0.3.7"
 
 local button = {}
 button.__index = button
 
 local lg = love.graphics
-
 local mXCache, mYCache
+local ORIGIN = {x = 0, y = 0}
 
 -----------------------------------------------
 ---------------LOCAL FUNCTIONS-----------------
@@ -146,6 +146,7 @@ function dial.new(x, y, radius, options)
 	options.x, options.y, options.radius = x, y, radius
 	options.positionType = "center"
 	options.buttons = {}
+	options.parent = ORIGIN
 	return setmetatable(options, dial)
 end
 
@@ -234,7 +235,7 @@ function button:draw()
 		lg.setFont(self.font)
 
 
-		local midAngle = self.angle2 - (self.angle2 - self.angle1)/2
+		local midAngle = self:getCenterAngle()
 		local txtx, txty = vector(midAngle, self.dial.radius/1.5)
 		local tw, th = self.font:getWidth(txt), self.font:getHeight(txt)
 
@@ -242,7 +243,6 @@ function button:draw()
 		if midAngle > halfpi and midAngle <= halfpi*3 then
 			midAngle = midAngle + -math.pi
 		end
-
 		if self.textOrientation == "horizontal" then
 			midAngle = 0
 		end
@@ -338,13 +338,18 @@ function button:inBounds()
 		self.dial.mouseDistanceCache <= self.dial.radius
 end
 
+function button:getCenterAngle()
+	return self.angle2 - (self.angle2 - self.angle1)/2
+end
+
 function dial:getCenter()
 	if self.positionType == "center" then
-		return self.x, self.y
+		return self.x + self.parent.x, self.y + self.parent.y
 	elseif self.positionType == "top left" then
-		return self.x + self.radius, self.y + self.radius
+		return self.x + self.parent.x + self.radius, self.y + self.parent.y + self.radius
 	end
 end
+
 
 
 ---------------------
