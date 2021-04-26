@@ -1,7 +1,9 @@
 
 local button = {}
 button.__index = button
-button._version = "0.6.12"
+button._version = "0.6.2"
+
+local ORIGIN = {x = 0, y = 0}
 
 local lg = love.graphics
 
@@ -9,7 +11,7 @@ local default = {
 	font = lg.getFont(), rotation = 0,
 	fitText = false, fitHoverText = true, visible = true, 
 	requireSelfClick = true, -- require press to happen in this button, then release in this button.
-	
+	parent = ORIGIN,
 	-- Keep in mind, you cannot be pressed while not being hovered.
 	-- Variables for when the button is not hovered, or selected.
 	text = "", -- text to print
@@ -243,7 +245,7 @@ function button:draw()
 		if self.isPressed then table.insert(v, "pressed") end
 		if self.selected then table.insert(v, "selected") end
 
-		local x, y, w, h = self.x, self.y, self.w, self.h
+		local x, y, w, h = self.x + self.parent.x, self.y + self.parent.y, self.w, self.h
 
 		-- draw 
 		lg.setColor(self[fV("color", v)])
@@ -377,13 +379,13 @@ function button:onExit() end
 -- Returns if x,y position is inside boundary of button
 function button:inBounds(x,y)
 	return self.shape == lg.rectangle and
-		x > self.x and
-		x < self.x + self.w and
-		y > self.y and
-		y < self.y + self.h or
+		x > self.x + self.parent.x and
+		x < self.x + self.parent.x + self.w and
+		y > self.y + self.parent.y and
+		y < self.y + self.parent.y + self.h or
 
 		self.shape == lg.circle and 
-		dist(x, y, self.x, self.y) <= self.radius
+		dist(x, y, self.x + self.parent.x, self.y + self.parent.y) <= self.radius
 end
 
 -- if key not passed, it will check if it is down.
