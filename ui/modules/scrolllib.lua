@@ -13,7 +13,7 @@
 local lg = love.graphics
 
 local scroll = {
-	__version = "0.5.655"
+	__version = "0.5.7"
 }
 scroll.__index = scroll
 scroll.font = lg.newFont(16)
@@ -65,10 +65,10 @@ end
 
 function scroll:newScrollbar(x, y, width, height)
 	self.scrollbar = {
-		x = x, 
-		y = y,
-		width = width,
-		height = height,
+		x = x or self.x + self.width,
+		y = y or self.y,
+		width = width or 8,
+		height = height or self.height,
 		troughMode = 0, -- 0 to page up/down in relative direction, 1 to jump to location
 		smoothTroughScroll = 0.25, -- Time it takes to finish scroll. if > 0, requires thumbScroll(dt) in update. 
 		troughHoldThreshold = 0.35, -- WIP Set to high number to effectively disable
@@ -282,7 +282,7 @@ end
 function scroll:getThumb()
 	-- get x, y, width, height of the thumb
 	local s = self.scrollbar
-	return s.x, self.scrollbar.y + self.scrollbar.height * self:getScrollPercent(), 
+	return s.x, s.y + s.height * self:getScrollPercent(),
 		s.width, s.height * self:getViewportHeightPercent()
 end
 function scroll:getThumbPosition()
@@ -341,6 +341,22 @@ function scroll:getTextDimensions(textArray)
 	local width, lines = font:getWrap(textArray.text, self.width)
 	local height = #lines*font:getHeight()
 	return width, height
+end
+
+function scroll:getTextAtPos(x, y)
+	if not self.contents.textArray then return false end -- requires text to find text at a position
+	if BoundCheck(x, self.y+1, self:getViewport()) then
+		y = y - self.yScroll
+		local height = 0
+		for k,v in pairs(self.contents.textArray) do
+			local dimx, dimy = self:getTextDimensions(v)
+			height = height + dimy + self.contents.lineBuffer
+			if y - self.y < height then
+				return k
+			end
+		end
+	end
+	return false
 end
 
 function scroll:refreshContentHeight()
@@ -421,6 +437,7 @@ function scroll:draw(f, width, height)
 		for k,v in ipairs(self.contents.textArray) do
 			if height > -top - previousHeight * 2 then
 				lg.setFont(v.font or self.font)
+				lg.setColor(v.color or {1,1,1,1})
 				lg.printf(
 					v.text,
 					self.leftBuffer,
