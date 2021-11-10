@@ -13,10 +13,11 @@
 local lg = love.graphics
 
 local scroll = {
-	__version = "0.5.7"
+	__version = "0.5.8"
 }
 scroll.__index = scroll
 scroll.font = lg.newFont(16)
+local ORIGIN = {x = 0, y = 0}
 
 
 ------------------------------------------------------------------------
@@ -43,7 +44,8 @@ function scroll.newViewport(x, y, width, height, align)
 	return setmetatable(
 	{
 		x = x, 
-		y = y, 
+		y = y,
+		parent = ORIGIN,
 		width = width,
 		height = height,
 		contents = {
@@ -59,7 +61,9 @@ function scroll.newViewport(x, y, width, height, align)
 		leftBuffer = 5,
 		rightBuffer = 5,
 		align = align or "left",
-		thumbClickLocation = nil
+		thumbClickLocation = nil,
+		contentHeightCache = 0,
+		scrollAmount = 12
 	}, scroll)
 end
 
@@ -72,6 +76,7 @@ function scroll:newScrollbar(x, y, width, height)
 		troughMode = 0, -- 0 to page up/down in relative direction, 1 to jump to location
 		smoothTroughScroll = 0.25, -- Time it takes to finish scroll. if > 0, requires thumbScroll(dt) in update. 
 		troughHoldThreshold = 0.35, -- WIP Set to high number to effectively disable
+		thumbMinHeight = 10
 	}
 end
 
@@ -82,19 +87,18 @@ end
 ------------------------------------------------------------------------
 ------------------------------Methods-----------------------------------
 ------------------------------------------------------------------------
-
 ----------------------
 --- Navigation methods
 ----------------------
 
 function scroll:clampScroll(pos)
 	-- returns clamped value. Does not set self.yScroll
-	if pos > 0 then
+	if pos > 0 then -- don't scroll above the content.
 		return 0
 	elseif math.abs(pos) + self.height > self:getContentHeight() then
-		if self:getViewportHeightPercent() == 1 then
+		if self:getViewportHeightPercent() == 1 then -- if everything is shown
 			return 0
-		else
+		else -- If attempting to scroll past maximum
 			return -(self:getContentHeight() - self.height + (self.bottomBuffer - self.topBuffer))
 		end
 	end
@@ -140,6 +144,8 @@ function scroll:print(text, font, color)
 	-- Add line of text.  Similar to print()
 	if not self.contents.textArray then self.contents.textArray = {} end
 	table.insert(self.contents.textArray, {text = text, font = font, color = color})
+	local _, y = self:getTextDimensions({text = text, font = font, color = color})
+	self.contentHeightCache = self.contentHeightCache + y + self.contents.lineBuffer
 end
 
 
@@ -283,13 +289,14 @@ function scroll:getThumb()
 	-- get x, y, width, height of the thumb
 	local s = self.scrollbar
 	return s.x, s.y + s.height * self:getScrollPercent(),
-		s.width, s.height * self:getViewportHeightPercent()
+	-- return s.x, self.scrollbar.y + self.scrollbar.height * self:getScrollPercent(),
+		s.width, math.max(s.height * self:getViewportHeightPercent(), s.thumbMinHeight)
 end
 function scroll:getThumbPosition()
 	return self.scrollbar.x, self.scrollbar.y + self.scrollbar.height * self:getScrollPercent()
 end
 function scroll:getThumbDimensions()
-	return self.scrollbar.width, self.scrollbar.height * self:getViewportHeightPercent()
+	return self.scrollbar.width, math.max(s.height * self:getViewportHeightPercent(), self.scrollbar.thumbMinHeight)
 end
 function scroll:inThumbBounds(x, y)
 	-- returns if x,y is inside thumb perimiter
@@ -378,8 +385,9 @@ function scroll:refreshContentHeight()
 	end
 end
 
-function scroll:getContentHeight() 
+function scroll:getContentHeight(calculate)
 	-- gets how high the contents to be drawn in the viewport is
+	if not calculate then return self.contentHeightCache end
 	if self.contents.image == "function" then
 		return self.contents.drawHeight
 	elseif self.contents.image then
@@ -390,7 +398,8 @@ function scroll:getContentHeight()
 			local dimx, dimy = self:getTextDimensions(v)
 			height = height + dimy
 		end
-		return height + (#self.contents.textArray * self.contents.lineBuffer) + self.topBuffer + self.bottomBuffer
+		self.contentHeightCache = height + (#self.contents.textArray * self.contents.lineBuffer) + self.topBuffer + self.bottomBuffer
+		return self.contentHeightCache
 	else
 		return 0
 	end
@@ -410,9 +419,13 @@ function scroll:mousereleased(x, y, button)
 	self:thumbRelease(x, y, button)
 end
 
--- function scroll:wheelmoved(x, y)
-
--- end
+function scroll:wheelmoved(x, y)
+	if self:inBounds(love.mouse.getPosition()) then
+		self:setScrollY(
+			self.yScroll + y * self.scrollAmount
+		)
+	end
+end
 
 function scroll:draw(f, width, height)
 	lg.push()
@@ -437,7 +450,6 @@ function scroll:draw(f, width, height)
 		for k,v in ipairs(self.contents.textArray) do
 			if height > -top - previousHeight * 2 then
 				lg.setFont(v.font or self.font)
-				lg.setColor(v.color or {1,1,1,1})
 				lg.printf(
 					v.text,
 					self.leftBuffer,
@@ -453,10 +465,8 @@ function scroll:draw(f, width, height)
 		end
 		lg.setFont(prevFont) -- courtesy font reset
 	end
-
 	lg.setScissor()
 	lg.pop()
-
 end
 
 
