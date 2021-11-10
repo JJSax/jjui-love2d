@@ -1,7 +1,7 @@
 
 local uiSet = {}
 uiSet.__index = uiSet
-uiSet._version = "0.0.2"
+uiSet._version = "0.0.3"
 
 -------------------------------------------
 -------------Local Functions---------------
@@ -48,6 +48,30 @@ end
 function uiSet:mousereleased(x, y, button)
 	for k, v in pairs(self.objects) do
 		v:mousereleased(x, y, button)
+	end
+end
+
+function uiSet:keypressed(key, scancode, isRepeat)
+	for k, v in pairs(self.objects) do
+		if v.keypressed then
+			v:keypressed(key, scancode, isRepeat)
+		end
+	end
+end
+
+function uiSet:keyreleased(key, scancode, isRepeat)
+	for k, v in pairs(self.objects) do
+		if v.keyreleased then
+			v:keyreleased(key, scancode, isRepeat)
+		end
+	end
+end
+
+function uiSet:wheelmoved(x, y)
+	for k,v in pairs(self.objects) do
+		if v.wheelmoved then
+			v:wheelmoved(x, y)
+		end
 	end
 end
 
