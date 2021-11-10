@@ -1,7 +1,11 @@
 
+--[[
+]]
+
+
 local button = {}
 button.__index = button
-button._version = "0.7.0"
+button._version = "0.8.0"
 
 local ORIGIN = {x = 0, y = 0}
 
@@ -19,6 +23,14 @@ local function dist(x1, y1, x2, y2, squared)
   local dy = y1 - y2
   local s = dx * dx + dy * dy
   return squared and s or math.sqrt(s)
+end
+
+local function angle(x1, y1, x2, y2)
+	return math.atan2(y2 - y1, x2 - x1)
+end
+
+local function vector(angle, magnitude)
+	return math.cos(angle) * magnitude, math.sin(angle) * magnitude
 end
 
 -- return image from string path or passed drawable
@@ -230,24 +242,35 @@ function button.newPolygonButton(x, y, vertices, extra)
 end
 
 --
-function button.newRectangleButton(l,t,w,h,extra)
-
+function button.newRectangleButton(l, t, w, h, extra)
 	return button.newPolygonButton(
 		l, t,
 		{0, 0, w, 0,
 		w, h, 0, h},
 		extra
 	)
-
 end
 
--- Circle button functionality not yet implemented
-function button.newCircleButton(x,y,r,extra)
+function button.newArcButton(x, y, radius, angle1, angle2, options)
 	local properties = getDefault()
-	properties.centerx, properties.centery = x, y
-	properties.shape, properties.x, properties.y, properties.radius = lg.circle, x, y, r
-	properties = merge(properties, extra)
+	properties.centerx, properties.centery = 0, 0
+	properties.x, properties.y, properties.radius = x, y, radius
+	properties.angle1, properties.angle2 = angle1, angle2
+	properties.shape = lg.arc
+	properties.arctype = "pie"
+	properties.textOrientation = "angled"
+	properties = merge(properties, options)
+
 	return setmetatable(properties, button)
+end
+
+function button.newAngleButton(x, y, radius, startAngle, addAngle, extra)
+	return button.newArcButton(x, y, radius, startAngle, startAngle + addAngle, extra)
+end
+
+
+function button.newCircleButton(x, y, r, extra)
+	return button.newArcButton(x, y, r, 0, 0, {shape = lg.circle})
 end
 
 --------------------------------------------
@@ -257,9 +280,9 @@ end
 function button:update(dt)
 	local mx, my = love.mouse.getPosition()
 	if self:inBounds(mx, my) then
-		local press, key = self:keyPressed()
-		self.isPressed = (press and self.requireSelfClick and self.origPress) and true or false
-		if self.isHovering == false then
+		local press, _ = self:anyIsDown()
+		self.isPressed = press and self.requireSelfClick and self.origPress
+		if not self.isHovering then
 			self.onEnter()
 			self.isHovering = true
 		end
@@ -267,8 +290,8 @@ function button:update(dt)
 			self.hover()
 		end
 		self.hoverTime = self.hoverTime + dt
-		self.isPrompting = self.hoverTime > self.hoverPromptTime and true or false
-	elseif self.isHovering == true then
+		self.isPrompting = self.hoverTime > self.hoverPromptTime
+	elseif self.isHovering then
 		self.onExit()
 		self.isHovering = false
 		self.hoverTime = 0
@@ -294,28 +317,21 @@ function button:draw()
 		lg.setColor(self[fV("color", v)])
 		local im = self[fV("image", v)]
 		if im then
-
 			local w, h = self.w or self.radius * 2, self.h or self.radius * 2
 			lg.draw(im, 0, 0, self.rotation,
 				w/im:getWidth(), h/im:getHeight(),
-				self.radius and im:getWidth()/2, self.radius and im:getHeight()/2)
-		else
-			if self.shape == lg.polygon then
-				self.shape("fill", self.vertices)
-			else
-				self.shape("fill", 0,0, self.radius)
-			end
-		end
-		lg.setColor(self[fV("outlineColor", v)])
-		lg.setLineWidth(self[fV("outlineWidth", v)])
-		if self.shape == lg.polygon then
-			self.shape("line", self.vertices)
-		else
-			self.shape("line",
-				x, y,
-				w and w or self.radius, h and h or self.roundedCornersRadius,
-				self.roundedCornersRadius, self.roundedCornersRadius
+				self.radius and im:getWidth()/2, self.radius and im:getHeight()/2
 			)
+		else
+			local shapePack = {
+				[lg.polygon] = {self.vertices},
+				[lg.circle] = {0,0, self.radius},
+				[lg.arc] = {0, 0, self.radius, self.angle1, self.angle2}
+			}
+			self.shape("fill", unpack(shapePack[self.shape]))
+			lg.setColor(self[fV("outlineColor", v)])
+			lg.setLineWidth(self[fV("outlineWidth", v)])
+			self.shape("line", unpack(shapePack[self.shape]))
 		end
 
 		-- rectangle for text background
@@ -323,16 +339,24 @@ function button:draw()
 		local txt =  self[fV("text", v)]
 		local tbb =  self[fV("textBackgroundBuffer", v)]
 		local tr  =  self[fV("textRotation", v)]
+
 		lg.translate(self.textXOffset, self.textYOffset)
 		local tw, th = self.font:getWidth(txt), self.font:getHeight(txt)
 		local txtx, txty = self.centerx + self.textXOffset,
 			self.centery + self.textYOffset
-		if self.shape == lg.circle then
-			txtx, txty = lg.inverseTransformPoint(txtx, txty)
+		if self.shape == lg.arc then
+			if self.textOrientation == "angled" then
+				tr = self:getCenterAngle()
+				txtx, txty = vector(tr, self.radius/1.5)
+				local halfpi = math.pi/2
+				if tr > halfpi and tr <= halfpi*3 then
+					tr = tr + -math.pi
+				end
+			end
 		end
 		lg.rectangle("fill",
 			txtx - tbb - tw/2,	txty - tbb - th/2,
-			tw  + tbb*2, th + tbb*2
+			tw + tbb*2, th + tbb*2
 		)
 		lg.setColor(self[fV("textColor", v)])
 		lg.setFont(self.font)
@@ -344,40 +368,56 @@ end
 
 function button:mousepressed(x, y, key, istouch, presses)
 	if self:inBounds(x,y) then
-		if self:keyPressed(key) then
+		if inside(self.triggerMouse, key) then
 			self.origPress = true
-			self:onPress()
+			self:onPress(x, y, key, istouch, presses)
 		end
 	end
 end
 function button:mousereleased(x, y, key, istouch, presses)
 	if self:inBounds(x,y) then
 		if self.requireSelfClick and self.origPress or not self.requireSelfClick then
-			if self:keyPressed(key) then
-				self:onRelease()
+			if inside(self.triggerMouse, key) then
+				self:onRelease(x, y, key, istouch, presses)
 			end
 		end
 	end
 	self.origPress = false
 end
+function button:mouseIsDown()
+	for k,v in ipairs(self.triggerMouse) do
+		if love.mouse.isDown(v) then
+			return true
+		end
+	end
+	return false
+end
 
 function button:keypressed(key, istouch, presses)
 	if self:inBounds(love.mouse.getPosition()) then
-		if self:keyPressed(key) then
+		if inside(self.triggerKeyboard, key) then
 			self.origPress = true
-			self:onPress()
+			self:onPress(key, istouch, presses)
 		end
 	end
 end
 function button:keyreleased(key, istouch, presses)
 	if self:inBounds(love.mouse.getPosition()) then
 		if self.requireSelfClick and self.origPress or not self.requireSelfClick then
-			if self:keyPressed(key) then
-				self:onRelease()
+			if inside(self.triggerKeyboard, key) then
+				self:onRelease(key, istouch, presses)
 			end
 		end
 	end
 	self.origPress = false
+end
+function button:keyIsDown()
+	for k,v in ipairs(self.triggerKeyboard) do
+		if love.keyboard.isDown(v) then
+			return true
+		end
+	end
+	return false
 end
 
 -- draws popup message  Put in love's draw loop after other buttons it may overlap
@@ -417,6 +457,7 @@ function button:onEnter() end
 function button:onExit() end
 
 -- Returns if x,y position is inside boundary of button
+-- Adapted Polygon Collision from to Stack Overflow user Peter Gilmour
 function button:inBounds(x,y)
 	x, y = lg.inverseTransformPoint(x - self.x, y - self.y)
 	if self.shape == lg.polygon then
@@ -433,13 +474,21 @@ function button:inBounds(x,y)
 			j = i
 		end
 		return oddNodes
-	else
-		return dist(x, y, 0,0) <= self.radius
+	elseif self.shape == lg.circle then
+		return dist(x, y, 0 + self.parent.x,0 + self.parent.y) <= self.radius
+	elseif self.shape == lg.arc then
+		local mx, my = love.mouse.getPosition()
+		local mouseAngle = angle(mx, my, self.x + self.parent.x, self.y + self.parent.y)
+		local adjustedAngle = mouseAngle + math.pi
+		local dist = dist(x, y, 0 + self.parent.x,0 + self.parent.y)
+		return adjustedAngle > self.angle1 and
+			adjustedAngle <= self.angle2 and
+			dist <= self.radius
 	end
 end
 
 -- if key not passed, it will check if it is down.
-function button:keyPressed(key)
+function button:anyIsDown(key)
 	for i = 1, #self.triggerMouse do
 		if key and key == self.triggerMouse[i] or not key and love.mouse.isDown(self.triggerMouse[i]) then
 			return true, self.triggerMouse[i]
@@ -457,6 +506,11 @@ end
 -- If you want the button to have a toggled on/off state, run this inside it's onPress or onRelease functions
 function button:toggle(bool)
 	self.selected = bool and bool or not self.selected
+end
+
+function button:getCenterAngle()
+	assert(self.shape == lg.arc, "getCenterAngle requires an arc button.")
+	return self.angle2 - (self.angle2 - self.angle1)/2
 end
 
 ---------------------
