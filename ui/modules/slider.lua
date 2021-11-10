@@ -3,7 +3,7 @@
 
 local slider = {}
 slider.__index = slider
-slider._version = "0.3.5"
+slider._version = "0.3.55"
 
 -- aliases
 local lm = love.mouse
@@ -46,6 +46,15 @@ local function map(n, start1, stop1, start2, stop2, Clamp)
 	end
 end
 
+local function inside(tab, find)
+	for k,v in pairs(tab) do
+		if v == find then
+			return true
+		end
+	end
+	return false
+end
+
 
 --------------------------------
 ----------Constructors----------
@@ -78,24 +87,22 @@ function slider.new(x1, y1, angle, length, width, segments)
 		-- if the bar is horizontal, the hoverPerpendicularBuffer is amount above or below
 		-- -- and the hoverParallelBuffer is left and right
 		hoverPerpendicularBuffer = 5,
-		hoverParallelBuffer = 0,
+		hoverParallelBuffer = 5,
 		-- segments = segments,
 		knobImage = nil,
-		knobOnHover = false, -- if false, it will always show. If you don't want a know, don't make one.
+		knobOnHover = false, -- if false, it will always show. If you don't want a knob, don't make one.
 		knobScale = {1,1},
 		fillColor = {0.7, 0.1, 0.1, 1}, -- part of the slider not filled
-		fill = 0.4, -- percent [0-1] of the bar that is filled.
+		fill = 0, -- percent [0-1] of the bar that is filled.
+		clampFill = true, -- prevent fill level from going out of range.
 		baseColor = {0.65,0.65,0.65,0.7}, -- fill portion of the slider
-		baseImage = nil,
-		minKnobColor = {1,1,1,1},
-		maxKnobColor = {1,1,1,1},
-		maxKnob = false,
-		knobOffset = {0, 0},
-		lockCursor = false, -- this will attempt to keep the cursor locked in range of the slider.
+		-- knobOffset = {0, 0}, -- WIP
 		range = {0, 1},
 		triggerMouse = {1, 2},
 		triggerKeyboard = {},
 		requireSelfClick = true, -- require press to happen in this slider, then release in this slider.
+
+		-- Internal variables
 		origPress = false, -- if mousepress was originally over this slider
 	}
 	return setmetatable(default, slider)
@@ -107,7 +114,7 @@ end
 
 function slider:update(dt)
 	if self.requireSelfClick and self.origPress or not self.requireSelfClick then
-		if self:keyPressed() then
+		if self:anyIsDown() then
 			self:slide(lm.getPosition())
 		end
 	end
@@ -128,7 +135,6 @@ function slider:draw()
 	bx, by = bx + ax, by + ay
 	lg.line(ax, ay, bx, by)
 
-
 	if self.knobImage then
 		if self.knobOnHover and self:inBounds(lm.getPosition()) or not self.knobOnHover then
 			lg.setColor(1,1,1,1)
@@ -139,12 +145,22 @@ function slider:draw()
 			)
 		end
 	end
+end
 
+function slider:keypressed(key, scancode, isRepeat)
+	if self:inBounds(lm.getPosition()) then
+		if inside(self.triggerKeyboard, key) then
+			self.origPress = true
+		end
+	end
+end
+function slider:keyreleased(key, scancode, isRepeat)
+	self.origPress = false
 end
 
 function slider:mousepressed(x, y, b, isTouch, presses)
 	if self:inBounds(x,y) then
-		if self:keyPressed(b) then
+		if inside(self.triggerMouse, b) then
 			self.origPress = true
 		end
 	end
@@ -153,6 +169,23 @@ function slider:mousereleased(x, y, b, isTouch, presses)
 	self.origPress = false
 end
 
+-- following 3 function return true if any valid key is pressed.
+function slider:mouseIsDown()
+	for k,v in ipairs(self.triggerMouse) do
+		if lm.isDown(v) then return true end
+	end
+	return false
+end
+function slider:keyIsDown()
+	for k,v in ipairs(self.triggerKeyboard) do
+		print(v)
+		if love.keyboard.isDown(v) then return true end
+	end
+	return false
+end
+function slider:anyIsDown()
+	return self:mouseIsDown() or self:keyIsDown()
+end
 
 ------------------------------------------------------------------------
 ------------------------------Methods-----------------------------------
@@ -196,8 +229,8 @@ function slider:pointFill(px, py)
 	local b_np = distance(bx, by, npx, npy, false)
 
 	if a_np < a_b and b_np < a_b then return a_p / a_b end -- percent 0-1
-	if a_np < b_np then return 0 end -- clamp
-	if b_np < a_np then return 1 end
+	if a_np < b_np then return self.clampFill and 0 or -(a_p / a_b) end
+	if b_np < a_np then return self.clampFill and 1 or a_p / a_b end
 end
 
 function slider:setPosition(x, y)
@@ -219,9 +252,9 @@ function slider:inBounds(mx, my)
 end
 
 -- if not passed, it will check if it is down.
-function slider:keyPressed(key)
+function slider:keyIsDown(key)
 	for i = 1, #self.triggerMouse do
-		if key and key == self.triggerMouse[i] or not key and love.mouse.isDown(self.triggerMouse[i]) then
+		if key and key == self.triggerMouse[i] or not key and lm.isDown(self.triggerMouse[i]) then
 			return true, self.triggerMouse[i]
 		end
 	end
