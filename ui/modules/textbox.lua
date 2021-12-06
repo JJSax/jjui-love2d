@@ -2,7 +2,7 @@ local lg = love.graphics
 
 local textbox = {}
 textbox.__index = textbox
-textbox._version = "0.0.32"
+textbox._version = "0.0.33"
 textbox.font = lg.newFont(14)
 
 
@@ -15,18 +15,23 @@ Bugs: [
 ]
 
 todo:
------ add caret visibility control.  Move text based on caret position.
------ add new cursor graphic when hovering over text, like hovering over this text makes an 'I' cursor
 add text margin to the left and right
-  var name padding/margin/buffer
+	var name padding/margin/buffer
 add text alias, so "test" would look like "****"
 add placeholder text.  aka the text that shows when the field is blank
 valid input chars regex option
-add selection functionality
-  Double click for word
-  Triple click for all
-  ctrl + a
-  ctrl + shift + left/right
+
+
+Features Implemented
+
+-add new cursor graphic when hovering over text, like hovering over this text makes an 'I' cursor
+-add caret visibility control.  Move text based on caret position.
+-add selection functionality
+	Double click for word
+	Triple click for all
+	ctrl + a
+	ctrl + shift + left/right
+
 --]]
 
 -------------------------------------------
@@ -116,12 +121,14 @@ function textbox.new(x, y, width, height, extra)
 		midShiftPerc = 0.3, -- when backspacing, will keep the cursor here to show some of previous text.
 		caretBlinkTimer = 0.45,
 		caretBlinkReset = 0.45,
+		caretWidth = 1,
 		caretColor = {1, 0.7, 0},
 		selectionHighlight = {0.3569, 0.3643, 0.4726, 0.75},
 
 		backgroundColor = {0,0,0,1},
 		textColor = {1,1,1,1},
 		outlineColor = {0.7, 0.7, 0.7},
+		outlineWidth = 1,
 		hoverColor = {1,1,1,0.1}, -- when hovering over this is the indicator.
 		resetTextRepeat = love.keyboard.hasKeyRepeat(),
 
@@ -336,6 +343,8 @@ function textbox:update(dt)
 end
 
 function textbox:draw()
+
+	lg.setLineWidth(self.outlineWidth)
 	lg.print(self.text:sub(unpack(self.caretPosition)), 0, 16)
 	lg.push()
 	lg.setColor(self.backgroundColor)
@@ -357,6 +366,7 @@ function textbox:draw()
 		if self.caretBlinkTimer > 0 then
 			local textWidth = self.font:getWidth(self.text)
 			local caretX = self:getAbsCaretPos(2)
+			lg.setLineWidth(self.caretWidth)
 			lg.setColor(self.caretColor)
 			lg.line(caretX, textY, caretX, textY + self.font:getHeight())
 		end
