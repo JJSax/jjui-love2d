@@ -114,7 +114,6 @@ end
 function uiSet:remove(...)
 	-- pass object directly into function.  uiSet:remove(object1, object2)
 	for k, object in pairs({...}) do
-		print(k, object)
 		for lType, v in pairs(self.loopTypes) do
 			if object[lType] then
 				self.loopTypes[lType][object] = nil
