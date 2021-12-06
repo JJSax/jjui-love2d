@@ -2,7 +2,7 @@ local lg = love.graphics
 
 local textbox = {}
 textbox.__index = textbox
-textbox._version = "0.0.33"
+textbox._version = "0.0.35"
 textbox.font = lg.newFont(14)
 
 
@@ -10,8 +10,6 @@ textbox.font = lg.newFont(14)
 fair reference https://www.w3schools.com/tags/tryit.asp?filename=tryhtml_input_test
 
 Bugs: [
-	Sometimes ctrl + left/right isn't working correctly, possibly fixed.  More tests!
-	Selection highlighs too far right from the right side.
 ]
 
 todo:
@@ -46,8 +44,18 @@ Features Implemented
 		return str:sub(i+1, j) -- +1 to prevent copying if not selecting anything.
 	end
 
+	local function minmaxCaret(i, j)
+		local temp
+		if i > j then
+			temp = j
+			j = i
+			i = temp
+		end
+		return i, j
+	end
+
 	local function replace(str, i, j, new)
-		-- possible issue if i == 0
+		i, j = minmaxCaret(i, j)
 		local finish = str:sub(j, #str)
 		return str:sub(1, i-1) .. new .. finish
 	end
@@ -150,7 +158,7 @@ function textbox:textinput(t)
 	if self.selected then
 		if self.caretPosition[1] ~= self.caretPosition[2] then
 			self.text = replace(self.text, self.caretPosition[1]+1, self.caretPosition[2]+1, t)
-			self:setCaretPos(self.caretPosition[1]+1)
+			self:setCaretPos(math.min(self.caretPosition[1], self.caretPosition[2])+1)
 		else
 			self.text = insert(self.text, self.caretPosition[1], t)
 			self:setCaretPos(1, true)
@@ -343,9 +351,10 @@ function textbox:update(dt)
 end
 
 function textbox:draw()
+	lg.setColor(1,1,1)
+	lg.print(self.text:sub(unpack(self.caretPosition)), 0, 16) -- Only for testing
 
 	lg.setLineWidth(self.outlineWidth)
-	lg.print(self.text:sub(unpack(self.caretPosition)), 0, 16)
 	lg.push()
 	lg.setColor(self.backgroundColor)
 	lg.rectangle("fill", self.x, self.y, self.width, self.height)
@@ -360,11 +369,13 @@ function textbox:draw()
 
 
 	lg.setScissor(self.x, self.y, self.width, self.height)
+	local text = self.textAliasChar and string.rep(self.textAliasChar, self.text:len()) or
+		self.text
 	local textX = self.x + self.textOffset
 	local textY = self.y + self.height/2 - self.font:getHeight()/2
 	if self.selected then -- draw caret
 		if self.caretBlinkTimer > 0 then
-			local textWidth = self.font:getWidth(self.text)
+			local textWidth = self.font:getWidth(text)
 			local caretX = self:getAbsCaretPos(2)
 			lg.setLineWidth(self.caretWidth)
 			lg.setColor(self.caretColor)
@@ -374,7 +385,7 @@ function textbox:draw()
 	lg.translate(self.textOffset, 0)
 	lg.setFont(self.font)
 	lg.setColor(self.textColor)
-	lg.print(self.text, self.x, textY)
+	lg.print(text, self.x, textY)
 	lg.setScissor()
 	lg.pop()
 
@@ -412,11 +423,11 @@ function textbox:inBounds(x, y)
 end
 
 function textbox:closeRightGap()
-	if self.font:getWidth(self.text) > self.width then
+	if self.font:getWidth(self:getAbsText()) > self.width then
 		if self.caretPosition[2] == #self.text or
-			self.font:getWidth(self.text) + self.textOffset < self.width
+			self.font:getWidth(self:getAbsText()) + self.textOffset < self.width
 		then
-			self.textOffset = self.width - self.font:getWidth(self.text)
+			self.textOffset = self.width - self.font:getWidth(self:getAbsText())
 		end
 	else
 		self.textOffset = 0
@@ -430,7 +441,7 @@ function textbox:closeLeftGap()
 end
 
 function textbox:getAbsCharPos(char)
-	return self.x + self.font:getWidth(self.text:sub(1, char)) + self.textOffset
+	return self.x + self.font:getWidth(self:getAbsText():sub(1, char)) + self.textOffset
 end
 
 function textbox:getAbsCaretPos(index)
@@ -447,9 +458,9 @@ function textbox:setCaretPos(p, relative)
 
 	local absCursorPos = self:getAbsCaretPos()
 	if absCursorPos < self.x then -- shift to the right
-		self.textOffset = -self.font:getWidth(self.text:sub(1, self.caretPosition[1]))
+		self.textOffset = -self.font:getWidth(self:getAbsText():sub(1, self.caretPosition[1]))
 	elseif absCursorPos > self.x + self.width then -- shift to the left
-		self.textOffset = -self.font:getWidth(self.text:sub(1, self.caretPosition[1])) + self.width
+		self.textOffset = -self.font:getWidth(self:getAbsText():sub(1, self.caretPosition[1])) + self.width
 	end
 end
 
@@ -466,7 +477,8 @@ function textbox:getClickCharacter(x, y)
 	if self:inBounds(x, y) then
 		x = x - self.textOffset
 		local width, char = 0, 0
-		for i in string.gmatch(self.text, ".") do -- for each character
+		local text = self:getAbsText()
+		for i in string.gmatch(text, ".") do -- for each character
 			local charWidth = self.font:getWidth(i) -- for left/right side of char accuracy
 			width = width + charWidth -- add width of character
 			char = char + 1 -- increment char
@@ -501,12 +513,18 @@ function textbox:wordAtPos(pos)
 end
 
 function textbox:removeSelection()
+	self.caretPosition[1], self.caretPosition[2] = minmaxCaret(self.caretPosition[1], self.caretPosition[2])
 	if self.caretPosition[1] == self.caretPosition[2] then return false end
 	local start = self.text:sub(1, self.caretPosition[1])
 	local finish = self.text:sub(self.caretPosition[2]+1, #self.text)
 	self.text = start .. finish
 	self:setCaretPos(#start)
 	return true
+end
+
+function textbox:getAbsText()
+	if not self.textAliasChar then return self.text end
+	return string.rep(self.textAliasChar, self.text:len())
 end
 
 ---------------------
