@@ -1,13 +1,12 @@
 
 local button = {}
 button.__index = button
-button._version = "0.9.0"
+button._version = "0.9.1"
 
 local ORIGIN = {x = 0, y = 0}
 
 local lg = love.graphics
 
--- run at bottom of main update function
 -------------------------------------------
 -------------Local Functions---------------
 -------------------------------------------
@@ -300,8 +299,10 @@ function button:update(dt)
 				self:onHold()
 			end
 		else
-			self.held = false
-			self:onHoldStop()
+			if self.held then
+				self:onHoldStop()
+				self.held = false
+			end
 		end
 
 		self.isPrompting = self.hoverTime > self.hoverPromptTime
@@ -311,8 +312,10 @@ function button:update(dt)
 		self.hoverTime = 0
 		self.isPressed = false
 		self.isPrompting = false
-		self.held = false
-		self:onHoldStop()
+		if self.held then
+			self:onHoldStop()
+			self.held = false
+		end
 	end
 end
 
