@@ -1,9 +1,7 @@
---[[
-]]
 
 local slider = {}
 slider.__index = slider
-slider._version = "0.3.55"
+slider._version = "0.3.6"
 
 -- aliases
 local lm = love.mouse
@@ -178,7 +176,6 @@ function slider:mouseIsDown()
 end
 function slider:keyIsDown()
 	for k,v in ipairs(self.triggerKeyboard) do
-		print(v)
 		if love.keyboard.isDown(v) then return true end
 	end
 	return false
@@ -195,7 +192,7 @@ end
 function slider:slide(mx, my)
 	-- local nx, ny = self:nearestPointToLine(mx, my)
 	self.fill = self:pointFill(mx, my)
-	self.callback()
+	self:callback()
 end
 
 function slider:nearestPointToLine(px, py) -- for geometric line.
@@ -231,12 +228,6 @@ function slider:pointFill(px, py)
 	if a_np < a_b and b_np < a_b then return a_p / a_b end -- percent 0-1
 	if a_np < b_np then return self.clampFill and 0 or -(a_p / a_b) end
 	if b_np < a_np then return self.clampFill and 1 or a_p / a_b end
-end
-
-function slider:setPosition(x, y)
-	local b = {vector(self.angle, self.length)}
-	self.a = {x = x + self.parent.x, y = y + self.parent.y}
-	self.b = {x = b[1] + x + self.parent.x, y = b[2] + y + self.parent.y}
 end
 --------------------------------
 ---------Get functions----------
@@ -278,12 +269,25 @@ end
 -- range(optional) is to fill based on position in range
 -- if range is true, pass a number to fill based on that numbers position in the range.
 function slider:setFill(fill, range)
-	self.fill = range and fill / (self.range[2] - self.range[1]) or fill 
+	self.fill = range and map(fill, self.range[1], self.range[2],
+		0, 1, self.clampFill) or fill
 	-- didn't finish this.  If range, then set fill percent to it's place in range
 end
 
 function slider:addFill(fill)
 	self.fill = clamp(self.fill + fill, 0, 1)
+end
+
+function slider:setPosition(x, y)
+	local b = {vector(self.angle, self.length)}
+	self.a = {x = x + self.parent.x, y = y + self.parent.y}
+	self.b = {x = b[1] + x + self.parent.x, y = b[2] + y + self.parent.y}
+end
+
+function slider:setLength(len)
+	self.length = len
+	local b = {vector(self.angle, len)}
+	self.b = {x = b[1] + self.a.x, y = b[2] + self.a.y}
 end
 
 function slider:setAngle(angle)
