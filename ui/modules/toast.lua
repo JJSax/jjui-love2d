@@ -20,10 +20,12 @@
 	TODO
 	Add pre-made toast types
 	Consider how this library should fit into jjui/init.lua
+	Consider how to allow stacked toasts.
+		If you want multiple to happen at once, I want user to define how to handle.
 ]]
 
 
-local toast = {_version = "0.1.0"}
+local toast = {_version = "0.1.1"}
 toast.__index = toast
 toast.queue = {}
 
@@ -40,6 +42,10 @@ function toast:setStartingVars(tab)
 	self:reset()
 end
 
+-- @ This is triggered when a new toast is started.
+function toast:onStart() end
+
+-- @ This adds a new toast to the queue.
 function toast:trigger(info)
 	assert(type(info) == "table", "Parameter 1 [info] type required \"table\"")
 	table.insert(self.queue, info)
@@ -51,6 +57,7 @@ function toast:update(dt)
 		if not self:animate(dt) then
 			table.remove(self.queue, 1)
 			self:reset()
+			self:onStart()
 		end
 	end
 end
