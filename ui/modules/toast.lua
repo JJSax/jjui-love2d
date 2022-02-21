@@ -24,8 +24,8 @@
 		If you want multiple to happen at once, I want user to define how to handle.
 ]]
 
-
-local toast = {_version = "0.1.1"}
+local inAnimation = false
+local toast = {_version = "0.1.2"}
 toast.__index = toast
 toast.queue = {}
 
@@ -35,6 +35,7 @@ function toast:reset()
 	for k,v in pairs(self.startingVars) do
 		self[k] = type(v) == "function" and v() or v
 	end
+	inAnimation = false
 end
 
 function toast:setStartingVars(tab)
@@ -54,10 +55,14 @@ end
 function toast:update(dt)
 	if #self.queue > 0 then
 		-- @ animate defined by user
-		if not self:animate(dt) then
+		if self:animate(dt) then
+			if not inAnimation then
+				inAnimation = true
+				self:onStart()
+			end
+		else
 			table.remove(self.queue, 1)
 			self:reset()
-			self:onStart()
 		end
 	end
 end
