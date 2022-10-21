@@ -1,9 +1,9 @@
 
 --[[
 
-	terms: 
+	terms:
 		Scrollbar: an inclusive term that encompases both the Thumb and the Trough.
-		Thumb: The part on the bar on the right or bottom of screen showing 
+		Thumb: The part on the bar on the right or bottom of screen showing
 				where you are in the page and how much you are viewing.
 		Trough: The part of the scrollbar that is not occupied by the thumb.
 		Viewport: The window that displays the content.
@@ -11,9 +11,10 @@
 ]]
 
 local lg = love.graphics
+local common = require((...):gsub('%.[^%.]*%.[^%.]+$', '')..".common")
 
 local scroll = {
-	__version = "0.5.8"
+	__version = "0.5.9"
 }
 scroll.__index = scroll
 scroll.font = lg.newFont(16)
@@ -24,16 +25,7 @@ local ORIGIN = {x = 0, y = 0}
 --------------------------Local functions-------------------------------
 ------------------------------------------------------------------------
 
-local function BoundCheck(x, y, bx, by, bw, bh)
-	return x > bx and
-		x < bx + bw and
-		y > by and
-		y < by + bh
-end
 
-local function inRange(num, mn, mx)
-	return (num >= mn and num <= mx) or (num <= mn and num >= mx)
-end
 
 ------------------------------------------------------------------------
 ---------------------------Constructors---------------------------------
@@ -43,7 +35,7 @@ end
 function scroll.newViewport(x, y, width, height, align)
 	return setmetatable(
 	{
-		x = x, 
+		x = x,
 		y = y,
 		parent = ORIGIN,
 		width = width,
@@ -74,7 +66,7 @@ function scroll:newScrollbar(x, y, width, height)
 		width = width or 8,
 		height = height or self.height,
 		troughMode = 0, -- 0 to page up/down in relative direction, 1 to jump to location
-		smoothTroughScroll = 0.25, -- Time it takes to finish scroll. if > 0, requires thumbScroll(dt) in update. 
+		smoothTroughScroll = 0.25, -- Time it takes to finish scroll. if > 0, requires thumbScroll(dt) in update.
 		troughHoldThreshold = 0.35, -- WIP Set to high number to effectively disable
 		thumbMinHeight = 10
 	}
@@ -182,7 +174,7 @@ end
 ----- Viewport methods
 ----------------------
 
-function scroll:setViewport(x, y, width, height) 
+function scroll:setViewport(x, y, width, height)
 	-- sets viewport x, y, width, and height
 	self.x, self.y = x or self.x, y or self.y
 	self.width, self.height = width or self.width, height or self.height
@@ -194,7 +186,7 @@ function scroll:getViewport()
 	-- gets viewport x, y, width, and height
 	return self.x, self.y, self.width, self.height
 end
-function scroll:getViewportHeightPercent() 
+function scroll:getViewportHeightPercent()
 	-- return 0-1 of how much viewport shows of content height
 	local theight = self:getContentHeight()
 	return self.height / self:getContentHeight() < 1 and self.height / self:getContentHeight() or 1
@@ -221,7 +213,7 @@ end
 function scroll:getScrollbar()
 	return self.scrollbar.x, self.scrollbar.y, self.scrollbar.width, self.scrollbar.height
 end
-function scroll:getScrollPercent() 
+function scroll:getScrollPercent()
 	-- return 0-1 of position of how far down viewport is scrolled
 	return math.abs(self.yScroll / self:getContentHeight())
 end
@@ -240,7 +232,7 @@ function scroll:troughClick(x, y, button)
 	-- put in mousepressed
 	-- when clicking the scrollbar this will will follow what is set in self.scrollbar.troughMode
 	-- sets destination, whether immediately jumping, or smoothly transitioning.
-	if BoundCheck(x, y, self:getScrollbar()) and not BoundCheck(x, y, self:getThumb()) then
+	if common.BoundCheck(x, y, self:getScrollbar()) and not common.BoundCheck(x, y, self:getThumb()) then
 		local npos
 		if self.scrollbar.troughMode == 1 then
 			-- instant jump mode
@@ -254,8 +246,8 @@ function scroll:troughClick(x, y, button)
 		else
 			-- page scroll mode
 			local dir = self:getScrollPercent() > self:getBarClickPercent(x, y) and -1 or 1
-			if dir == 1 then self:pageDown() 
-			else self:pageUp() 
+			if dir == 1 then self:pageDown()
+			else self:pageUp()
 			end
 		end
 	end
@@ -267,12 +259,12 @@ function scroll:troughUpdate(dt)
 		local sb = self.scrollbar
 		local dest = sb.destination
 		local dir = self.yScroll < dest and 1 or -1
-		local speed = (math.abs(sb.begin - dest) / sb.smoothTroughScroll * dt) * 
+		local speed = (math.abs(sb.begin - dest) / sb.smoothTroughScroll * dt) *
 			(1 + math.sin( sb.moveTimer/sb.smoothTroughScroll*(math.pi*2)-1 ))
 		local new = self.yScroll + speed * dir
 
 		sb.moveTimer = sb.moveTimer and sb.moveTimer - dt
-		if not inRange(new, sb.begin, dest) then
+		if not common.inRange(new, sb.begin, dest) then
 			new = dest
 			sb.destination = nil
 			sb.begin = nil
@@ -300,7 +292,7 @@ function scroll:getThumbDimensions()
 end
 function scroll:inThumbBounds(x, y)
 	-- returns if x,y is inside thumb perimiter
-	return BoundCheck(x, y, self:getThumb())
+	return common.BoundCheck(x, y, self:getThumb())
 end
 function scroll:thumbScroll(dt)
 	-- put in update
@@ -308,7 +300,7 @@ function scroll:thumbScroll(dt)
 	if self.thumbClickLocation then
 		local mx, my = love.mouse.getPosition()
 		local ylev = (
-			math.abs(my - self.scrollbar.y / self.scrollbar.height) 
+			math.abs(my - self.scrollbar.y / self.scrollbar.height)
 			- self.scrollbar.y - self.thumbClickLocation[2]
 		)
 		local npos = -(self:getContentHeight() * (ylev / self.scrollbar.height))
@@ -334,9 +326,9 @@ end
 ----------------------
 
 function scroll:inBounds(x,y)
-	if BoundCheck(x, y, self:getViewport()) then
+	if common.BoundCheck(x, y, self:getViewport()) then
 		return "viewport"
-	elseif self.scrollbar and BoundCheck(x, y, self:getScrollbar()) then
+	elseif self.scrollbar and common.BoundCheck(x, y, self:getScrollbar()) then
 		return "trough"
 	end
 	return false
@@ -352,7 +344,7 @@ end
 
 function scroll:getTextAtPos(x, y)
 	if not self.contents.textArray then return false end -- requires text to find text at a position
-	if BoundCheck(x, self.y+1, self:getViewport()) then
+	if common.BoundCheck(x, self.y+1, self:getViewport()) then
 		y = y - self.yScroll
 		local height = 0
 		for k,v in pairs(self.contents.textArray) do

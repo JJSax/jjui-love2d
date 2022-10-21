@@ -1,8 +1,9 @@
 local lg = love.graphics
+local common = require((...):gsub('%.[^%.]*%.[^%.]+$', '')..".common")
 
 local textbox = {}
 textbox.__index = textbox
-textbox._version = "0.1.0"
+textbox._version = "0.1.1"
 textbox.font = lg.newFont(14)
 
 
@@ -36,10 +37,6 @@ Features Implemented
 -------------------------------------------
 -------------Local Functions---------------
 -------------------------------------------
-
-	local function clamp(n, low, high)
-		return math.max(math.min(n, high), low)
-	end
 
 	local function slice(str, i, j)
 		return str:sub(i+1, j) -- +1 to prevent copying if not selecting anything.
@@ -450,7 +447,7 @@ function textbox:setCaretPos(p, relative)
 	-- will either put it to the right of second position if p is positive and left of 1 otherwise.
 	if relative then p = self.caretPosition[1] + p end
 	-- local change = p - self.caretPosition[1]
-	p = clamp(p, 0, #self.text)
+	p = common.clamp(p, 0, #self.text)
 	self.caretPosition = {p, p}
 
 	local absCursorPos = self:getAbsCaretPos()
@@ -462,11 +459,11 @@ function textbox:setCaretPos(p, relative)
 end
 
 function textbox:selectionStart(char)
-	self.caretPosition[1] = clamp(char, 0, #self.text)
+	self.caretPosition[1] = common.clamp(char, 0, #self.text)
 end
 
 function textbox:selectionEnd(char)
-	self.caretPosition[2] = clamp(char, 0, #self.text)
+	self.caretPosition[2] = common.clamp(char, 0, #self.text)
 end
 
 function textbox:getClickCharacter(x, y)

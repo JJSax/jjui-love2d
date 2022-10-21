@@ -24,8 +24,10 @@
 		If you want multiple to happen at once, I want user to define how to handle.
 ]]
 
+-- local common = require((...):gsub('%.[^%.]*%.[^%.]+$', '')..".common")
+
 local inAnimation = false
-local toast = {_version = "0.1.2"}
+local toast = {_version = "0.1.3"}
 toast.__index = toast
 toast.queue = {}
 

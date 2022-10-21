@@ -1,104 +1,16 @@
 
 local button = {}
 button.__index = button
-button._version = "0.9.1"
+button._version = "0.9.2"
 
 local ORIGIN = {x = 0, y = 0}
 
 local lg = love.graphics
+local common = require((...):gsub('%.[^%.]*%.[^%.]+$', '')..".common")
 
 -------------------------------------------
 -------------Local Functions---------------
 -------------------------------------------
-
-local lg = love.graphics
-
-local function dist(x1, y1, x2, y2, squared)
-	local dx = x1 - x2
-	local dy = y1 - y2
-	local s = dx * dx + dy * dy
-	return squared and s or math.sqrt(s)
-end
-
-local function angle(x1, y1, x2, y2)
-	return math.atan2(y2 - y1, x2 - x1)
-end
-
-local function vector(angle, magnitude)
-	return math.cos(angle) * magnitude, math.sin(angle) * magnitude
-end
-
-local function clamp(num, low, high)
-	if num < low then return low end
-	if num > high then return high end
-	return num
-end
-
--- return image from string path or passed drawable
-local function formatImage( image )
-	-- assert(image, "Required image not passed.")
-	if type(image) == "string" then
-		return lg.newImage(image)
-	elseif pcall(function() image:typeOf("Drawable") end) then
-		return image
-	elseif not image then return nil
-	else
-		error("Parameter passed not valid.  Must be either path to drawable, or drawable type.")
-	end
-end
-
-local function inside(tab, var)
-	for k,v in pairs(tab) do
-		if v == var then
-			return true
-		end
-	end
-	return false
-end
-
-local function uncapitalize(str)
-	return string.lower(str:sub(1, 1))..str:sub(2, string.len(str))
-end
-
-local function formatVariable(var, ...)
-	local l = ...
-	local s = ""
-
-	s = (inside(l, "pressed") and "Pressed") or (inside(l, "hover") and s.."Hover" or s) or s
-	s = inside(l, "selected") and s.."Selected" or s
-
-	-- format capitalization
-	s = s..var:gsub("^%l", string.upper)
-	s = s:gsub("^%l", string.lower)
-
-	return uncapitalize(s)
-end
-
--- iterates through similar vars and formats variable name
-local function simVarIter(main)
-	local t = {"", "hover", "pressed", "selected", "hoverSelected", "pressedSelected"}
-	local i = 0
-	return function()
-		i = i + 1
-		if i <= #t then return uncapitalize(t[i]..main) end
-	end
-end
-
-local function merge(default, extra)
-	if not extra then return default end
-	for k,v in pairs(extra) do
-		default[k] = v
-	end
-	return default
-end
-
-local function average(tab)
-	local t = 0
-	for k,v in pairs(tab) do
-		t = t + v
-	end
-	return t / #tab
-end
 
 local function getDefault()
 	return {
@@ -219,7 +131,7 @@ function button.newPolygonButton(x, y, vertices, extra)
 	properties.shape = lg.polygon
 	properties.vertices = vertices
 	properties.x, properties.y = x, y
-	properties = merge(properties, extra)
+	properties = common.merge(properties, extra)
 
 	local minx, miny, maxx, maxy = math.huge, math.huge, -math.huge, -math.huge
 	local xt, yt = {}, {}
@@ -234,7 +146,7 @@ function button.newPolygonButton(x, y, vertices, extra)
 
 	end
 	properties.w, properties.h = math.abs(maxx - minx), math.abs(maxy - miny)
-	properties.centerx, properties.centery = average(xt), average(yt)
+	properties.centerx, properties.centery = common.average(xt), common.average(yt)
 
 	return setmetatable(properties, button)
 end
@@ -257,7 +169,7 @@ function button.newArcButton(x, y, radius, angle1, angle2, extra)
 	properties.shape = lg.arc
 	properties.arctype = "pie"
 	properties.textOrientation = "angled"
-	properties = merge(properties, extra)
+	properties = common.merge(properties, extra)
 
 	return setmetatable(properties, button)
 end
@@ -322,7 +234,7 @@ end
 function button:draw()
 	if not self.visible then return false end
 	lg.push()
-	local fV = formatVariable
+	local fV = common.formatVariable
 	local v = {}
 	if self.isHovering then table.insert(v, "hover") end
 	if self.isPressed then table.insert(v, "pressed") end
@@ -365,7 +277,7 @@ function button:draw()
 	if self.shape == lg.arc then
 		if self.textOrientation == "angled" then
 			tr = self:getCenterAngle()
-			txtx, txty = vector(tr, self.radius/1.5)
+			txtx, txty = common.vector(tr, self.radius/1.5)
 			local halfpi = math.pi/2
 			if tr > halfpi and tr <= halfpi*3 then
 				tr = tr + -math.pi
@@ -387,7 +299,7 @@ end
 
 function button:mousepressed(x, y, key, istouch, presses)
 	if self:inBounds(x,y) then
-		if inside(self.triggerMouse, key) then
+		if common.inside(self.triggerMouse, key) then
 			self.origPress = true
 			self:onPress(x, y, key, istouch, presses)
 		end
@@ -396,7 +308,7 @@ end
 function button:mousereleased(x, y, key, istouch, presses)
 	if self:inBounds(x,y) then
 		if self.requireSelfClick and self.origPress or not self.requireSelfClick then
-			if inside(self.triggerMouse, key) then
+			if common.inside(self.triggerMouse, key) then
 				self:onRelease(x, y, key, istouch, presses)
 			end
 		end
@@ -414,7 +326,7 @@ end
 
 function button:keypressed(key, istouch, presses)
 	if not self:inBounds(love.mouse.getPosition()) then return end
-	if inside(self.triggerKeyboard, key) then
+	if common.inside(self.triggerKeyboard, key) then
 		self.origPress = true
 		local x, y = love.mouse.getPosition()
 		self:onPress(x, y, key, istouch, presses)
@@ -423,7 +335,7 @@ end
 function button:keyreleased(key, istouch, presses)
 	if self:inBounds(love.mouse.getPosition()) then
 		if self.requireSelfClick and self.origPress or not self.requireSelfClick then
-			if inside(self.triggerKeyboard, key) then
+			if common.inside(self.triggerKeyboard, key) then
 				local x, y = love.mouse.getPosition()
 				self:onRelease(x, y, key, istouch, presses)
 			end
@@ -453,8 +365,8 @@ function button:prompt()
 				   font:getHeight(text) + buffY * 2
 
 	if self.lockPromptToWindow then
-		mx = clamp(mx, 0, lg.getWidth() - font:getWidth(text))
-		my = clamp(my, 0, lg.getHeight() - font:getHeight())
+		mx = common.clamp(mx, 0, lg.getWidth() - font:getWidth(text))
+		my = common.clamp(my, 0, lg.getHeight() - font:getHeight())
 	end
 	local rectX, rectY = mx - buffX, my - buffY
 
@@ -505,12 +417,12 @@ function button:inBounds(x,y)
 		end
 		return oddNodes
 	elseif self.shape == lg.circle then
-		return dist(x, y, 0 + self.parent.x,0 + self.parent.y) <= self.radius
+		return common.dist(x, y, 0 + self.parent.x,0 + self.parent.y) <= self.radius
 	elseif self.shape == lg.arc then
 		local mx, my = love.mouse.getPosition()
-		local mouseAngle = angle(mx, my, self.x + self.parent.x, self.y + self.parent.y)
+		local mouseAngle = common.angle(mx, my, self.x + self.parent.x, self.y + self.parent.y)
 		local adjustedAngle = mouseAngle + math.pi
-		local dist = dist(x, y, 0 + self.parent.x,0 + self.parent.y)
+		local dist = common.dist(x, y, 0 + self.parent.x,0 + self.parent.y)
 		return adjustedAngle > self.angle1 and
 			adjustedAngle <= self.angle2 and
 			dist <= self.radius
@@ -581,14 +493,14 @@ function button:setVar(var, value, ...)
 		"TextBackgroundBuffer", "Image", "Color", "OutlineColor",
 		"OutlineWidth"
 	}
-	assert(inside(validVar, var),
+	assert(common.inside(validVar, var),
 		"Valid param1 not passed. valid options are\n"..
 		table.concat( validVar, "\n")
 	)
 
 	local input = ...
 	if input == true then
-		for v in simVarIter(var) do
+		for v in common.simVarIter(var) do
 			self[v] = value
 		end
 	elseif not input then
@@ -611,7 +523,7 @@ function button:setTextBackgroundColor(col, ...)
 function button:setTextBackgroundBuffer(buffer, ...)
 	self:setVar("TextBackgroundBuffer", buffer, ...) end
 function button:setImage(image, ...)
-	self:setVar("Image", formatImage(image), ...) end
+	self:setVar("Image", common.formatImage(image), ...) end
 function button:setColor(col, ...)
 	self:setVar("Color", col, ...) end
 function button:setOutlineColor(col, ...)

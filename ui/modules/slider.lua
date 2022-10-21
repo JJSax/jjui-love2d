@@ -1,57 +1,20 @@
 
 local slider = {}
 slider.__index = slider
-slider._version = "0.3.6"
+slider._version = "0.3.7"
 
 -- aliases
 local lm = love.mouse
 local lg = love.graphics
 local ORIGIN = {x = 0, y = 0}
 
+local common = require((...):gsub('%.[^%.]*%.[^%.]+$', '')..".common")
+
 
 --------------------------------
 --------local functions---------
 --------------------------------
 
-local function clamp(n, low, high)
-	return math.max(math.min(n, high), low)
-end
-
-local function distance(x1, y1, x2, y2, squared)
-	local dx = x1 - x2
-	local dy = y1 - y2
-	local s = dx * dx + dy * dy
-	return squared and s or math.sqrt(s)
-end
-
-local function vector(angle, magnitude)
-	return math.cos(angle) * magnitude, math.sin(angle) * magnitude
-end
-
-local function angle(x1, y1, x2, y2)
-	return math.atan2(y2 - y1, x2 - x1)
-end
-
-local function map(n, start1, stop1, start2, stop2, Clamp)
-	local mapped = (n - start1) / (stop1 - start1) * (stop2 - start2) + start2
-	if not Clamp then
-		return mapped
-	end
-	if start2 < stop2 then
-		return clamp(mapped, start2, stop2)
-	else
-		return clamp(mapped, stop2, start2)
-	end
-end
-
-local function inside(tab, find)
-	for k,v in pairs(tab) do
-		if v == find then
-			return true
-		end
-	end
-	return false
-end
 
 
 --------------------------------
@@ -61,7 +24,7 @@ end
 function slider.new(x1, y1, angle, length, width, segments)
 	-- slider at any angle
 
-	-- segments not implimented yet.  
+	-- segments not implimented yet.
 	-- if you desire custom segment locations, (array) segments to designate where they will be 0-1.
 	-- example: {0, 0.1, 0.9, 1} puts segments at the start, 10% in, 90% in and at the end.
 
@@ -73,7 +36,7 @@ function slider.new(x1, y1, angle, length, width, segments)
 	}
 	angle = quickAngles[angle] or angle -- simplify common angles
 
-	local b = {vector(angle, length)}
+	local b = {common.vector(angle, length)}
 
 	local default = {
 		parent = ORIGIN,
@@ -129,7 +92,7 @@ function slider:draw()
 
 	lg.setColor(self.fillColor)
 
-	local bx, by = vector(angle(ax, ay, bx, by), self.fill * self.length)
+	local bx, by = common.vector(common.angle(ax, ay, bx, by), self.fill * self.length)
 	bx, by = bx + ax, by + ay
 	lg.line(ax, ay, bx, by)
 
@@ -137,8 +100,8 @@ function slider:draw()
 		if self.knobOnHover and self:inBounds(lm.getPosition()) or not self.knobOnHover then
 			lg.setColor(1,1,1,1)
 			lg.draw(
-				self.knobImage, 
-				bx, by, 0, self.knobScale[1], self.knobScale[2], 
+				self.knobImage,
+				bx, by, 0, self.knobScale[1], self.knobScale[2],
 				self.knobImage:getWidth()/2, self.knobImage:getHeight()/2
 			)
 		end
@@ -147,7 +110,7 @@ end
 
 function slider:keypressed(key, scancode, isRepeat)
 	if self:inBounds(lm.getPosition()) then
-		if inside(self.triggerKeyboard, key) then
+		if common.inside(self.triggerKeyboard, key) then
 			self.origPress = true
 		end
 	end
@@ -158,7 +121,7 @@ end
 
 function slider:mousepressed(x, y, b, isTouch, presses)
 	if self:inBounds(x,y) then
-		if inside(self.triggerMouse, b) then
+		if common.inside(self.triggerMouse, b) then
 			self.origPress = true
 		end
 	end
@@ -211,19 +174,19 @@ end
 
 function slider:distanceToLine(px, py) -- geometric line
 	local nx, ny = self:nearestPointToLine(px, py)
-	return distance(nx, ny, px, py)
+	return common.dist(nx, ny, px, py)
 end
 
 function slider:pointFill(px, py)
 	-- point px, py to fill percent 0-1 from point
-	-- gets the fill level of px, py on slider.	
+	-- gets the fill level of px, py on slider.
 	local ax, ay, bx, by = self.a.x + self.parent.x, self.a.y + self.parent.y,
 		self.b.x + self.parent.x, self.b.y + self.parent.y
 	local npx, npy = self:nearestPointToLine(px, py)
-	local a_b = distance(ax, ay, bx, by, false)
-	local a_p = distance(ax, ay, npx, npy, false)
-	local a_np = distance(ax, ay, npx, npy, false)
-	local b_np = distance(bx, by, npx, npy, false)
+	local a_b = common.dist(ax, ay, bx, by, false)
+	local a_p = common.dist(ax, ay, npx, npy, false)
+	local a_np = common.dist(ax, ay, npx, npy, false)
+	local b_np = common.dist(bx, by, npx, npy, false)
 
 	if a_np < a_b and b_np < a_b then return a_p / a_b end -- percent 0-1
 	if a_np < b_np then return self.clampFill and 0 or -(a_p / a_b) end
@@ -235,8 +198,8 @@ end
 
 function slider:inBounds(mx, my)
 	local npx, npy = self:nearestPointToLine(mx, my)
-	local np_a = distance(npx, npy, self.a.x + self.parent.x, self.a.y + self.parent.y, false)
-	local np_b = distance(npx, npy, self.b.x + self.parent.x, self.b.y + self.parent.y, false)
+	local np_a = common.dist(npx, npy, self.a.x + self.parent.x, self.a.y + self.parent.y, false)
+	local np_b = common.dist(npx, npy, self.b.x + self.parent.x, self.b.y + self.parent.y, false)
 
 	return self:distanceToLine(mx, my) <= self.hoverPerpendicularBuffer + self.width and
 		np_b < self.hoverParallelBuffer + self.length and np_a < self.hoverParallelBuffer + self.length
@@ -250,7 +213,7 @@ function slider:keyIsDown(key)
 		end
 	end
 	for i = 1, #self.triggerKeyboard do
-		if key and key == self.triggerKeyboard[i] or not key and love.keyboard.isDown(self.triggerKeyboard[i]) then 
+		if key and key == self.triggerKeyboard[i] or not key and love.keyboard.isDown(self.triggerKeyboard[i]) then
 			return true, self.triggerKeyboard[i]
 		end
 	end
@@ -259,7 +222,7 @@ end
 
 -- get value from range
 function slider:getValue()
-	return map(self.fill, 0, 1, self.range[1], self.range[2], true)
+	return common.map(self.fill, 0, 1, self.range[1], self.range[2], true)
 end
 
 --------------------------------
@@ -269,30 +232,30 @@ end
 -- range(optional) is to fill based on position in range
 -- if range is true, pass a number to fill based on that numbers position in the range.
 function slider:setFill(fill, range)
-	self.fill = range and map(fill, self.range[1], self.range[2],
+	self.fill = range and common.map(fill, self.range[1], self.range[2],
 		0, 1, self.clampFill) or fill
 	-- didn't finish this.  If range, then set fill percent to it's place in range
 end
 
 function slider:addFill(fill)
-	self.fill = clamp(self.fill + fill, 0, 1)
+	self.fill = common.clamp(self.fill + fill, 0, 1)
 end
 
 function slider:setPosition(x, y)
-	local b = {vector(self.angle, self.length)}
+	local b = {common.vector(self.angle, self.length)}
 	self.a = {x = x + self.parent.x, y = y + self.parent.y}
 	self.b = {x = b[1] + x + self.parent.x, y = b[2] + y + self.parent.y}
 end
 
 function slider:setLength(len)
 	self.length = len
-	local b = {vector(self.angle, len)}
+	local b = {common.vector(self.angle, len)}
 	self.b = {x = b[1] + self.a.x, y = b[2] + self.a.y}
 end
 
 function slider:setAngle(angle)
 	self.angle = angle
-	local b = {vector(self.angle, self.length)}
+	local b = {common.vector(self.angle, self.length)}
 	self.b = {x = b[1] + self.a.x + self.parent.x, y = b[2] + self.a.y + self.parent.y}
 end
 

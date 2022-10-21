@@ -15,35 +15,17 @@ collectgarbage("collect")
 
 local dial = {}
 dial.__index = dial
-dial._version = "0.4.1"
+dial._version = "0.4.2"
 
 local lg = love.graphics
 local ORIGIN = {x = 0, y = 0}
 
+local common = require((...):gsub('%.[^%.]*%.[^%.]+$', '')..".common")
 -----------------------------------------------
 ---------------LOCAL FUNCTIONS-----------------
 -----------------------------------------------
 
-local function angle(x1, y1, x2, y2)
-	return math.atan2(y2 - y1, x2 - x1)
-end
 
-local function inside(tab, var)
-	for k,v in pairs(tab) do
-		if v == var then
-			return true
-		end
-	end
-	return false
-end
-
-local function merge(default, extra)
-	if not extra then return default end
-	for k,v in pairs(extra) do
-		default[k] = v
-	end
-	return default
-end
 
 -----------------------------------------------
 ----------------CONSTRUCTORS-------------------
@@ -73,7 +55,7 @@ function dial:newArcButton(angle1, angle2, options)
 	options = options or {}
 	options.dial = self
 	options.parent = self
-	options = merge(default, options)
+	options = common.merge(default, options)
 
 	table.insert(self.buttons, Button.newArcButton(0, 0, self.radius, angle1, angle2, options))
 	return self.buttons[#self.buttons]
@@ -81,6 +63,33 @@ end
 
 function dial:newAngleButton(angle, addAngle, options)
 	return self:newArcButton(angle, angle + addAngle, options)
+end
+
+function dial:newWeightedButton(weight, options)
+	assert(self.pie, "Requires dial.pie to be true.")
+	assert(type(weight) == "number", "Param 1 needs to be of type number.")
+
+	options = options or {}
+	options.weight = weight
+
+	local totalWeight = weight
+	for k,v in ipairs(self.buttons) do
+		totalWeight = totalWeight + v.weight
+	end
+
+	local dAngle = self.angle2 - self.angle1
+	local curAngle = self.angle1
+
+	local this = self:newArcButton(0, 0, options)
+
+	for k,v in pairs(self.buttons) do
+	-- print(self.angle1, self.angle2, dAngle, weight / totalWeight)
+		v.angle1 = curAngle
+		v.angle2 = curAngle + dAngle * (v.weight / totalWeight)
+		curAngle = v.angle2
+	end
+
+	return this
 end
 
 -----------------------------------------------
