@@ -232,7 +232,7 @@ function scroll:troughClick(x, y, button)
 	-- put in mousepressed
 	-- when clicking the scrollbar this will will follow what is set in self.scrollbar.troughMode
 	-- sets destination, whether immediately jumping, or smoothly transitioning.
-	if common.BoundCheck(x, y, self:getScrollbar()) and not common.BoundCheck(x, y, self:getThumb()) then
+	if common.pointInRect(x, y, self:getScrollbar()) and not common.pointInRect(x, y, self:getThumb()) then
 		local npos
 		if self.scrollbar.troughMode == 1 then
 			-- instant jump mode
@@ -292,7 +292,7 @@ function scroll:getThumbDimensions()
 end
 function scroll:inThumbBounds(x, y)
 	-- returns if x,y is inside thumb perimiter
-	return common.BoundCheck(x, y, self:getThumb())
+	return common.pointInRect(x, y, self:getThumb())
 end
 function scroll:thumbScroll(dt)
 	-- put in update
@@ -326,9 +326,9 @@ end
 ----------------------
 
 function scroll:inBounds(x,y)
-	if common.BoundCheck(x, y, self:getViewport()) then
+	if common.pointInRect(x, y, self:getViewport()) then
 		return "viewport"
-	elseif self.scrollbar and common.BoundCheck(x, y, self:getScrollbar()) then
+	elseif self.scrollbar and common.pointInRect(x, y, self:getScrollbar()) then
 		return "trough"
 	end
 	return false
@@ -344,7 +344,7 @@ end
 
 function scroll:getTextAtPos(x, y)
 	if not self.contents.textArray then return false end -- requires text to find text at a position
-	if common.BoundCheck(x, self.y+1, self:getViewport()) then
+	if common.pointInRect(x, self.y+1, self:getViewport()) then
 		y = y - self.yScroll
 		local height = 0
 		for k,v in pairs(self.contents.textArray) do
