@@ -3,7 +3,7 @@ local common = require((...):gsub('%.[^%.]*%.[^%.]+$', '')..".common")
 
 local textbox = {}
 textbox.__index = textbox
-textbox._version = "0.1.1"
+textbox._version = "0.1.2"
 textbox.font = lg.newFont(14)
 
 

@@ -1,7 +1,7 @@
 
 local button = {}
 button.__index = button
-button._version = "0.9.2"
+button._version = "0.9.3"
 
 local ORIGIN = {x = 0, y = 0}
 

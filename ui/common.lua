@@ -1,5 +1,5 @@
 local common = {
-	_VERSION = "0.0.6"
+	_VERSION = "0.0.8"
 }
 
 common.__index = common
