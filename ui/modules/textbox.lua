@@ -117,7 +117,7 @@ function textbox.new(x, y, width, height, extra)
 		text = "",
 		textAliasChar = nil, -- make all characters appear as this character.
 		textColor = {1,1,1,1},
-		textOffset = 0, -- x offset meant for use with cursor.
+		textOffset = 4, -- x offset meant for use with cursor.
 		font = textbox.font,
 		hasFocus = true, -- if textbox is selected and ready to accept input
 		selectedColor = {0.4, 0.4, 1, 0.1},

@@ -123,4 +123,16 @@ function common.pointInRect(x, y, bx, by, bw, bh)
 		and	y < by + bh
 end
 
+function common.between(a1, a2, target)
+	local min = math.min(a1, a2)
+	local max = math.max(a1,a2)
+	local diff = max - min
+	local mid = max - diff/2
+
+	local dot = math.cos(mid)*math.cos(target) + math.sin(mid)*math.sin(target)
+	local angle = math.acos(dot)
+
+	return angle <= diff/2
+end
+
 return common

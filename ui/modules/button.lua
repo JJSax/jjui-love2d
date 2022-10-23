@@ -188,6 +188,7 @@ end
 --Run these in their respective love loops--
 --------------------------------------------
 function button:update(dt)
+	self:onUpdate(dt)
 	local mx, my = love.mouse.getPosition()
 	if self:inBounds(mx, my) then
 		local press, _ = self:anyIsDown()
@@ -233,7 +234,7 @@ end
 
 function button:draw()
 	if not self.visible then return false end
-	lg.push()
+	lg.push("all")
 	local fV = common.formatVariable
 	local v = {}
 	if self.isHovering then table.insert(v, "hover") end
@@ -389,6 +390,7 @@ end
 --------------------------------------------
 -------------Common Functions---------------
 --------------------------------------------
+function button:onUpdate() end
 function button:onRelease() end
 function button:onPress() end
 function button:hover() end
@@ -421,11 +423,8 @@ function button:inBounds(x,y)
 	elseif self.shape == lg.arc then
 		local mx, my = love.mouse.getPosition()
 		local mouseAngle = common.angle(mx, my, self.x + self.parent.x, self.y + self.parent.y)
-		local adjustedAngle = mouseAngle + math.pi
-		local dist = common.dist(x, y, 0 + self.parent.x,0 + self.parent.y)
-		return adjustedAngle > self.angle1 and
-			adjustedAngle <= self.angle2 and
-			dist <= self.radius
+		local dist = common.dist(x, y, 0 + self.parent.x, 0 + self.parent.y)
+		return common.between(self.angle1, self.angle2, mouseAngle + math.pi) and dist <= self.radius
 	end
 end
 
