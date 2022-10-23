@@ -12,89 +12,43 @@ local common = require((...):gsub('%.[^%.]*%.[^%.]+$', '')..".common")
 -------------Local Functions---------------
 -------------------------------------------
 
+local state = {
+	-- heirarchy, selected > hovered > pressed
+	[false] = { -- not selected
+
+	},
+	[true] = { -- selected
+
+	}
+	-- disabled
+	-- normal = 1,
+	-- hover = 2,
+	-- pressed = 3,
+	-- selected = 4,
+	-- hoverSelected = 5,
+	-- pressedSelected = 6
+}
+
+-- local allhave = {
+-- 	text, textRotation, textColor, textBgColor, textBgBuffer,
+-- 	textXOffset, textYOffset, image, color, outlineColor, outlineWidth,
+
+-- }
+
 local function getDefault()
-	return {
-		font = lg.getFont(), rotation = 0,
-		fitText = false, fitHoverText = true, visible = true,
-		requireSelfClick = true, -- require press to happen in this button, then release in this button.
+	local default = {
+		rotation = 0,
 		parent = ORIGIN,
-		triggerMouse = {1}, triggerKeyboard = {}, -- array of buttons to detect isDown
-
-		-- Keep in mind, you cannot be pressed while not being hovered.
-		-- Variables for when the button is not hovered, or selected.
-		text = "", -- text to print
-		textRotation = 0,
-		textColor = {1,1,1,1}, -- Color of text
-		textBackgroundColor = {0,0,0,0}, -- Color of box behind text
-		textBackgroundBuffer = 1, -- Buffer in pixels for surrounding highlight.
-		textXOffset = 0, -- Horizontal text offset within button.  Note, doesn't have to be inside button.
-		textYOffset = 0, -- Vertical offset within button
-		image = nil, -- Image to draw, has to be lg.newImage, not path to image.  You can use formatImage.
-		color = {1,1,1,1}, -- Color of main button area.
-		outlineColor = {0,0,0,0}, -- Color of outline draw.
-		outlineWidth = 0, -- Width of outline
-
-		-- Button state while hovered, but not selected.
-		hoverText = "",
-		hoverTextRotation = 0,
-		hoverTextColor = {1,1,1,1},
-		hoverTextBackgroundColor = {0,0,0,0},
-		hoverTextBackgroundBuffer = 1,
-		hoverImage = nil, -- not selected; hovered; not pressed
-		hoverColor = {0.8,0.8,0.8,1},
-		hoverOutlineColor = {0,0,0,0},
-		hoverOutlineWidth = 1,
-		isHovering = false,
-		 -- additional hover variable
+		visible = true,
+		requireSelfClick = true, -- require press to happen in this button, then release in this button.
 		hoverTime = 0,
 		hoverFuncTime = 1,
-
-		-- Button state while pressed but not selected,
-		 -- AKA trigger mouse/keyboard held while hovering over the button not yet triggered.
-		pressedText = "",
-		pressedTextRotation = 0,
-		pressedTextColor = {1,1,1,1},
-		pressedTextBackgroundColor = {0,0,0,0},
-		pressedTextBackgroundBuffer = 1,
-		pressedImage = nil, -- not selected; hovered; pressed
-		pressedColor = {0.7,0.7,0.7,1},
-		pressedOutlineColor = {0,0,0,0},
-		pressedOutlineWidth = 1,
-		isPressed = false,
-
-		-- Button state selected, not pressed.
-		selectedText = "",
-		selectedTextRotation = 0,
-		selectedTextColor = {1,1,1,1},
-		selectedTextBackgroundColor = {0,0,0,0},
-		selectedTextBackgroundBuffer = 1,
-		selectedImage = nil, -- selected; not hovered; not pressed
-		selectedColor = {1,1,1,1},
-		selectedOutlineColor = {0,0,0,0},
-		selectedOutlineWidth = 1,
+		disabled = false,
+		default = true, -- if not pressed and not hovering
+		pressed = false,
+		hovered = false,
 		selected = false,
-
-		-- Button state selected and hovered, not pressed
-		hoverSelectedText = "",
-		hoverSelectedTextRotation = 0,
-		hoverSelectedTextColor = {1,1,1,1},
-		hoverSelectedTextBackgroundColor = {0,0,0,0},
-		hoverSelectedTextBackgroundBuffer = 1,
-		hoverSelectedImage = nil, -- selected; hovered; not pressed
-		hoverSelectedColor = {0.8,0.8,0.8,1},
-		hoverSelectedOutlineColor = {0,0,0,0},
-		hoverSelectedOutlineWidth = 1,
-
-		-- Button state selected and pressed
-		pressedSelectedText = "",
-		pressedSelectedTextRotation = 0,
-		pressedSelectedTextColor = {1,1,1,1},
-		pressedSelectedTextBackgroundColor = {0,0,0,0},
-		pressedSelectedTextBackgroundBuffer = 1,
-		pressedSelectedImage = nil, -- selected; hovered; pressed
-		pressedSelectedColor = {0.7,0.7,0.7,1},
-		pressedSelectedOutlineColor = {0,0,0,0},
-		pressedSelectedOutlineWidth = 1,
+		triggerMouse = {1}, triggerKeyboard = {}, -- array of buttons to detect isDown
 
 		-- Prompting
 		promptText = "",
@@ -107,13 +61,15 @@ local function getDefault()
 		promptOffset = {0, 0},
 		promptPosition = nil,
 		hoverPromptTime = 1,
-		isPrompting = false,
+		prompting = false,
 		lockPromptToWindow = true,
 
 		pressTime = 0,
 		heldTriggerTime = 1,
 		held = false,
 	}
+	common.standardButton(default)
+	return default
 end
 
 --------------------------------------------
@@ -188,21 +144,24 @@ end
 --Run these in their respective love loops--
 --------------------------------------------
 function button:update(dt)
+	if self.disabled then return end
+
 	self:onUpdate(dt)
+
 	local mx, my = love.mouse.getPosition()
 	if self:inBounds(mx, my) then
 		local press, _ = self:anyIsDown()
-		self.isPressed = press and self.requireSelfClick and self.origPress
-		if not self.isHovering then
+		self.pressed = press and self.requireSelfClick and self.origPress
+		if not self.hovered then
 			self.onEnter()
-			self.isHovering = true
+			self.hovered = true
 		end
 		if self.hoverTime > self.hoverFuncTime then
 			self.hover()
 		end
 		self.hoverTime = self.hoverTime + dt
 
-		if self.isPressed then
+		if self.pressed then
 			self.pressTime = self.pressTime + dt
 			if self.pressTime > self.heldTriggerTime then
 				if not self.held then
@@ -218,13 +177,13 @@ function button:update(dt)
 			end
 		end
 
-		self.isPrompting = self.hoverTime > self.hoverPromptTime
-	elseif self.isHovering then
+		self.prompting = self.hoverTime > self.hoverPromptTime
+	elseif self.hovered then
 		self.onExit()
-		self.isHovering = false
+		self.hovered = false
 		self.hoverTime = 0
-		self.isPressed = false
-		self.isPrompting = false
+		self.pressed = false
+		self.prompting = false
 		if self.held then
 			self:onHoldStop()
 			self.held = false
@@ -234,19 +193,14 @@ end
 
 function button:draw()
 	if not self.visible then return false end
+
 	lg.push("all")
-	local fV = common.formatVariable
-	local v = {}
-	if self.isHovering then table.insert(v, "hover") end
-	if self.isPressed then table.insert(v, "pressed") end
-	if self.selected then table.insert(v, "selected") end
+	lg.translate(self.x + self.parent.x, self.y + self.parent.y)
 
-	local x, y = self.x + self.parent.x, self.y + self.parent.y
-	lg.translate(x, y)
-
+	local state = common.getState(self)
 	-- draw
-	lg.setColor(self[fV("color", v)])
-	local im = self[fV("image", v)]
+	lg.setColor(state.color)
+	local im = state.image
 	if im then
 		local w, h = self.w or self.radius * 2, self.h or self.radius * 2
 		lg.draw(im, 0, 0, self.rotation,
@@ -260,21 +214,21 @@ function button:draw()
 			[lg.arc] = {0, 0, self.radius, self.angle1, self.angle2}
 		}
 		self.shape("fill", unpack(shapePack[self.shape]))
-		lg.setColor(self[fV("outlineColor", v)])
-		lg.setLineWidth(self[fV("outlineWidth", v)])
+		lg.setColor(state.outlineColor)
+		lg.setLineWidth(state.outlineWidth)
 		self.shape("line", unpack(shapePack[self.shape]))
 	end
 
 	-- rectangle for text background
-	lg.setColor( self[fV("textBackgroundColor", v)] )
-	local txt =  self[fV("text", v)]
-	local tbb =  self[fV("textBackgroundBuffer", v)]
-	local tr  =  self[fV("textRotation", v)]
+	lg.setColor( state.textBackgroundColor )
+	local txt =  state.text
+	local tbb =  state.textBackgroundBuffer
+	local tr  =  state.textRotation
 
-	lg.translate(self.textXOffset, self.textYOffset)
-	local tw, th = self.font:getWidth(txt), self.font:getHeight(txt)
-	local txtx, txty = self.centerx + self.textXOffset,
-		self.centery + self.textYOffset
+	lg.translate(state.textXOffset, state.textYOffset)
+	local tw, th = state.font:getWidth(txt), state.font:getHeight(txt)
+	local txtx, txty = self.centerx + state.textXOffset,
+		self.centery + state.textYOffset
 	if self.shape == lg.arc then
 		if self.textOrientation == "angled" then
 			tr = self:getCenterAngle()
@@ -289,10 +243,10 @@ function button:draw()
 		txtx - tbb - tw/2,	txty - tbb - th/2,
 		tw + tbb*2, th + tbb*2
 	)
-	lg.setColor(self[fV("textColor", v)])
-	lg.setFont(self.font)
+	lg.setColor(state.textColor)
+	lg.setFont(state.font)
 	lg.print(txt, txtx, txty, tr, 1, 1,
-		math.floor(self.font:getWidth(txt)/2), math.floor(self.font:getHeight()/2))
+		math.floor(state.font:getWidth(txt)/2), math.floor(state.font:getHeight()/2))
 
 
 	lg.pop()
@@ -355,7 +309,7 @@ end
 
 -- draws popup message  Put in love's draw loop after other buttons it may overlap
 function button:prompt()
-	if not self.isPrompting then return false end
+	if not self.prompting then return false end
 
 	local buffX, buffY = unpack(self.promptGap)
 	local font = self.promptFont
@@ -488,19 +442,20 @@ function button:setVar(var, value, ...)
 	]]
 
 	local validVar = {
-		"Text", "TextRotation", "TextColor", "TextBackgroundColor",
-		"TextBackgroundBuffer", "Image", "Color", "OutlineColor",
-		"OutlineWidth"
+		"text", "textRotation", "textColor", "textBackgroundColor",
+		"textXOffset", "textYOffset", "textBackgroundBuffer", "font",
+		"image", "color", "outlineColor", "outlineWidth"
 	}
-	assert(common.inside(validVar, var),
+	common.assert(common.inside(validVar, var),
 		"Valid param1 not passed. valid options are\n"..
-		table.concat( validVar, "\n")
+		table.concat( validVar, "\n"),
+		3
 	)
 
 	local input = ...
 	if input == true then
-		for v in common.simVarIter(var) do
-			self[v] = value
+		for state in common.iterateAllStates(self) do
+			state[var] = value
 		end
 	elseif not input then
 		self[var] = value
@@ -512,23 +467,23 @@ function button:setVar(var, value, ...)
 end
 
 function button:setText(text, ...)
-	self:setVar("Text", text, ...) end
+	self:setVar("text", text, ...) end
 function button:setTextRotation(rotation, ...)
-	self:setVar("TextRotation", rotation, ...) end
+	self:setVar("textRotation", rotation, ...) end
 function button:setTextColor(col, ...)
-	self:setVar("TextColor", col, ...) end
+	self:setVar("textColor", col, ...) end
 function button:setTextBackgroundColor(col, ...)
-	self:setVar("TextBackgroundColor", col, ...) end
+	self:setVar("textBackgroundColor", col, ...) end
 function button:setTextBackgroundBuffer(buffer, ...)
-	self:setVar("TextBackgroundBuffer", buffer, ...) end
+	self:setVar("textBackgroundBuffer", buffer, ...) end
 function button:setImage(image, ...)
-	self:setVar("Image", common.formatImage(image), ...) end
+	self:setVar("image", common.formatImage(image), ...) end
 function button:setColor(col, ...)
-	self:setVar("Color", col, ...) end
+	self:setVar("color", col, ...) end
 function button:setOutlineColor(col, ...)
-	self:setVar("OutlineColor", col, ...) end
+	self:setVar("outlineColor", col, ...) end
 function button:setOutlineWidth(w, ...)
-	self:setVar("OutlineWidth", w, ...) end
+	self:setVar("outlineWidth", w, ...) end
 
 
 return button
