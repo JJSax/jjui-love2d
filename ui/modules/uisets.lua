@@ -1,7 +1,7 @@
 
 local uiSet = {}
 uiSet.__index = uiSet
-uiSet._version = "0.1.0"
+uiSet._version = "0.1.1"
 
 -------------------------------------------
 -------------Local Functions---------------
@@ -92,7 +92,7 @@ end
 
 function uiSet:prompt()
 	for k,v in pairs(self.loopTypes.prompt) do
-		k:prompt()
+		k:drawPrompt()
 	end
 end
 

@@ -1,7 +1,7 @@
 
 local button = {}
 button.__index = button
-button._version = "0.9.3"
+button._version = "0.9.6"
 
 local ORIGIN = {x = 0, y = 0}
 
@@ -11,29 +11,6 @@ local common = require((...):gsub('%.[^%.]*%.[^%.]+$', '')..".common")
 -------------------------------------------
 -------------Local Functions---------------
 -------------------------------------------
-
-local state = {
-	-- heirarchy, selected > hovered > pressed
-	[false] = { -- not selected
-
-	},
-	[true] = { -- selected
-
-	}
-	-- disabled
-	-- normal = 1,
-	-- hover = 2,
-	-- pressed = 3,
-	-- selected = 4,
-	-- hoverSelected = 5,
-	-- pressedSelected = 6
-}
-
--- local allhave = {
--- 	text, textRotation, textColor, textBgColor, textBgBuffer,
--- 	textXOffset, textYOffset, image, color, outlineColor, outlineWidth,
-
--- }
 
 local function getDefault()
 	local default = {
@@ -51,23 +28,30 @@ local function getDefault()
 		triggerMouse = {1}, triggerKeyboard = {}, -- array of buttons to detect isDown
 
 		-- Prompting
-		promptText = "",
-		promptFont = lg.getFont(),
-		promptTextColor = {1,1,1,1},
-		promptColor = {0,0,0,0},
-		promptOutlineColor = {0,0,0,0},
-		promptOutlineWidth = 1,
-		promptGap = {2, 2}, -- this is the extra space around prompt text
-		promptOffset = {0, 0},
-		promptPosition = nil,
-		hoverPromptTime = 1,
-		prompting = false,
-		lockPromptToWindow = true,
+		-- promptText = "",
+		-- promptFont = lg.getFont(),
+		-- promptTextColor = {1,1,1,1},
+		-- promptColor = {0,0,0,0},
+		-- promptOutlineColor = {0,0,0,0},
+		-- promptOutlineWidth = 1,
+		-- promptTextBackgroundBuffer = {2, 2}, -- this is the extra space around prompt text
+
+		-- promptOffset = {0, 0},
+		-- promptPosition = nil,
+		-- hoverPromptTime = 1,
+		-- prompting = false,
+		-- lockPromptToWindow = true,
 
 		pressTime = 0,
 		heldTriggerTime = 1,
 		held = false,
 	}
+	default.prompt = common.newVarSet()
+	default.prompt.offset = {0,0}
+	default.prompt.position = nil
+	default.prompt.hoverTime = 1
+	default.prompt.prompting = false
+	default.prompt.lockToWindow = true
 	common.standardButton(default)
 	return default
 end
@@ -177,7 +161,7 @@ function button:update(dt)
 			end
 		end
 
-		self.prompting = self.hoverTime > self.hoverPromptTime
+		self.prompting = self.hoverTime > self.prompt.hoverTime
 	elseif self.hovered then
 		self.onExit()
 		self.hovered = false
@@ -308,14 +292,14 @@ function button:keyIsDown()
 end
 
 -- draws popup message  Put in love's draw loop after other buttons it may overlap
-function button:prompt()
+function button:drawPrompt()
 	if not self.prompting then return false end
 
-	local buffX, buffY = unpack(self.promptGap)
-	local font = self.promptFont
-	local text = self.promptText
+	local buffX, buffY = self.prompt.textBackgroundBuffer, self.prompt.textBackgroundBuffer
+	local font = self.prompt.font
+	local text = self.prompt.text
 	local mx, my = love.mouse.getPosition()
-	mx, my = mx + self.promptOffset[1], my + self.promptOffset[2]
+	mx, my = mx + self.prompt.offset[1], my + self.prompt.offset[2]
 	local pW, pY = font:getWidth (text) + buffX * 2,
 				   font:getHeight(text) + buffY * 2
 
@@ -325,16 +309,16 @@ function button:prompt()
 	end
 	local rectX, rectY = mx - buffX, my - buffY
 
-	if self.promptPosition then
-		rectX, rectY = unpack(self.promptPosition)
+	if self.prompt.position then
+		rectX, rectY = unpack(self.prompt.position)
 	end
 
-	lg.setColor(self.promptColor)
+	lg.setColor(self.prompt.color)
 	lg.rectangle("fill", rectX, rectY, pW, pY)
-	lg.setColor(self.promptOutlineColor)
-	lg.setLineWidth(self.promptOutlineWidth)
+	lg.setColor(self.prompt.outlineColor)
+	lg.setLineWidth(self.prompt.outlineWidth)
 	lg.rectangle("line", rectX, rectY, pW, pY)
-	lg.setColor(self.promptTextColor)
+	lg.setColor(self.prompt.textColor)
 	lg.setFont(font)
 	lg.print(text, rectX + buffX, rectY + buffY)
 	return true
@@ -466,24 +450,8 @@ function button:setVar(var, value, ...)
 	end
 end
 
-function button:setText(text, ...)
-	self:setVar("text", text, ...) end
-function button:setTextRotation(rotation, ...)
-	self:setVar("textRotation", rotation, ...) end
-function button:setTextColor(col, ...)
-	self:setVar("textColor", col, ...) end
-function button:setTextBackgroundColor(col, ...)
-	self:setVar("textBackgroundColor", col, ...) end
-function button:setTextBackgroundBuffer(buffer, ...)
-	self:setVar("textBackgroundBuffer", buffer, ...) end
 function button:setImage(image, ...)
-	self:setVar("image", common.formatImage(image), ...) end
-function button:setColor(col, ...)
-	self:setVar("color", col, ...) end
-function button:setOutlineColor(col, ...)
-	self:setVar("outlineColor", col, ...) end
-function button:setOutlineWidth(w, ...)
-	self:setVar("outlineWidth", w, ...) end
-
+	self:setVar("image", common.formatImage(image), ...)
+end
 
 return button
