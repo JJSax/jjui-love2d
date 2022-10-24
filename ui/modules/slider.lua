@@ -1,7 +1,7 @@
 
 local slider = {}
 slider.__index = slider
-slider._version = "0.3.7"
+slider._version = "0.3.8"
 
 -- aliases
 local lm = love.mouse
@@ -68,10 +68,9 @@ end
 --------------------------------
 
 function slider:update(dt)
-	if self.requireSelfClick and self.origPress or not self.requireSelfClick then
-		if self:anyIsDown() then
-			self:slide(lm.getPosition())
-		end
+	if not (self.requireSelfClick and self.origPress or not self.requireSelfClick) then return end
+	if self:anyIsDown() then
+		self:slide(lm.getPosition())
 	end
 end
 
@@ -90,23 +89,21 @@ function slider:draw()
 	bx, by = bx + ax, by + ay
 	lg.line(ax, ay, bx, by)
 
-	if self.knobImage then
-		if self.knobOnHover and self:inBounds(lm.getPosition()) or not self.knobOnHover then
-			lg.setColor(1,1,1,1)
-			lg.draw(
-				self.knobImage,
-				bx, by, 0, self.knobScale[1], self.knobScale[2],
-				self.knobImage:getWidth()/2, self.knobImage:getHeight()/2
-			)
-		end
+	if not self.knobImage then return end
+	if self.knobOnHover and self:inBounds(lm.getPosition()) or not self.knobOnHover then
+		lg.setColor(1,1,1,1)
+		lg.draw(
+			self.knobImage,
+			bx, by, 0, self.knobScale[1], self.knobScale[2],
+			self.knobImage:getWidth()/2, self.knobImage:getHeight()/2
+		)
 	end
 end
 
 function slider:keypressed(key, scancode, isRepeat)
-	if self:inBounds(lm.getPosition()) then
-		if common.inside(self.triggerKeyboard, key) then
-			self.origPress = true
-		end
+	if not self:inBounds(lm.getPosition()) then return false end
+	if common.inside(self.triggerKeyboard, key) then
+		self.origPress = true
 	end
 end
 function slider:keyreleased(key, scancode, isRepeat)
@@ -114,10 +111,9 @@ function slider:keyreleased(key, scancode, isRepeat)
 end
 
 function slider:mousepressed(x, y, b, isTouch, presses)
-	if self:inBounds(x,y) then
-		if common.inside(self.triggerMouse, b) then
-			self.origPress = true
-		end
+	if not self:inBounds(x,y) then return false end
+	if common.inside(self.triggerMouse, b) then
+		self.origPress = true
 	end
 end
 function slider:mousereleased(x, y, b, isTouch, presses)
@@ -126,16 +122,10 @@ end
 
 -- following 3 function return true if any valid key is pressed.
 function slider:mouseIsDown()
-	for k,v in ipairs(self.triggerMouse) do
-		if lm.isDown(v) then return true end
-	end
-	return false
+	return lm.isDown(self.triggerMouse)
 end
 function slider:keyIsDown()
-	for k,v in ipairs(self.triggerKeyboard) do
-		if love.keyboard.isDown(v) then return true end
-	end
-	return false
+	return love.keyboard.isDown(self.triggerKeyboard)
 end
 function slider:anyIsDown()
 	return self:mouseIsDown() or self:keyIsDown()
@@ -147,13 +137,11 @@ end
 
 
 function slider:slide(mx, my)
-	-- local nx, ny = self:nearestPointToLine(mx, my)
 	self.fill = self:pointFill(mx, my)
 	self:callback()
 end
 
 function slider:nearestPointToLine(px, py) -- for geometric line.
-
 	-- returns a point on the infinite line nearest px, py
 	local ax, ay, bx, by = self.a.x + self.parent.x, self.a.y + self.parent.y,
 		self.b.x + self.parent.x, self.b.y + self.parent.y
@@ -191,28 +179,38 @@ end
 --------------------------------
 
 function slider:inBounds(mx, my)
+	local ax, ay, bx, by = self.a.x + self.parent.x, self.a.y + self.parent.y,
+		self.b.x + self.parent.x, self.b.y + self.parent.y
+	local kx, ky = common.vector(common.angle(ax, ay, bx, by), self.fill * self.length)
+	kx, ky = kx + ax, ky + ay
+
 	local npx, npy = self:nearestPointToLine(mx, my)
-	local np_a = common.dist(npx, npy, self.a.x + self.parent.x, self.a.y + self.parent.y, false)
-	local np_b = common.dist(npx, npy, self.b.x + self.parent.x, self.b.y + self.parent.y, false)
+	local np_a = common.dist(npx, npy, ax, ay, false)
+	local np_b = common.dist(npx, npy, bx, by, false)
+	local np_k = common.dist(npx, npy, kx, ky, false)
 
-	return self:distanceToLine(mx, my) <= self.hoverPerpendicularBuffer + self.width and
-		np_b < self.hoverParallelBuffer + self.length and np_a < self.hoverParallelBuffer + self.length
+	local pointBetweenA_B = np_b < self.hoverParallelBuffer + self.length and np_a < self.hoverParallelBuffer + self.length
+	local distCheck = self.hoverParallelBuffer + self.length * math.abs(self.fill)
+	local pointBetweenA_Fill = np_a < distCheck and np_k < distCheck
+
+	return self:distanceToLine(mx, my) <= self.hoverPerpendicularBuffer + self.width
+			and (pointBetweenA_B or pointBetweenA_Fill)
 end
 
--- if not passed, it will check if it is down.
-function slider:keyIsDown(key)
-	for i = 1, #self.triggerMouse do
-		if key and key == self.triggerMouse[i] or not key and lm.isDown(self.triggerMouse[i]) then
-			return true, self.triggerMouse[i]
-		end
-	end
-	for i = 1, #self.triggerKeyboard do
-		if key and key == self.triggerKeyboard[i] or not key and love.keyboard.isDown(self.triggerKeyboard[i]) then
-			return true, self.triggerKeyboard[i]
-		end
-	end
-	return false
-end
+--? This has duplicate name, and seems uneccessary.
+-- function slider:keyIsDown(key)
+-- 	for i = 1, #self.triggerMouse do
+-- 		if key and key == self.triggerMouse[i] or not key and lm.isDown(self.triggerMouse[i]) then
+-- 			return true, self.triggerMouse[i]
+-- 		ends
+-- 	end
+-- 	for i = 1, #self.triggerKeyboard do
+-- 		if key and key == self.triggerKeyboard[i] or not key and love.keyboard.isDown(self.triggerKeyboard[i]) then
+-- 			return true, self.triggerKeyboard[i]
+-- 		end
+-- 	end
+-- 	return false
+-- end
 
 -- get value from range
 function slider:getValue()
