@@ -1,7 +1,7 @@
 
 local slider = {}
 slider.__index = slider
-slider._version = "0.3.8"
+slider._version = "0.3.9"
 
 -- aliases
 local lm = love.mouse
@@ -28,11 +28,15 @@ function slider.new(x1, y1, angle, length, width, segments)
 	-- if you desire custom segment locations, (array) segments to designate where they will be 0-1.
 	-- example: {0, 0.1, 0.9, 1} puts segments at the start, 10% in, 90% in and at the end.
 
-	angle = common.angles[angle] or angle -- simplify common angles
+	common.assert(x1, "requires x value to be passed", 3)
+	common.assert(y1, "requires y value to be passed", 3)
+	common.assert(angle, "requires angle value to be passed", 3)
+	common.assert(length, "requires length value to be passed", 3)
 
+	angle = common.angles[angle] or angle -- simplify common angles
 	local b = {common.vector(angle, length)}
 
-	local default = {
+	local self = {
 		parent = ORIGIN,
 		a = {x = x1, y = y1},
 		b = {x = b[1] + x1, y = b[2] + y1},
@@ -60,7 +64,7 @@ function slider.new(x1, y1, angle, length, width, segments)
 		-- Internal variables
 		origPress = false, -- if mousepress was originally over this slider
 	}
-	return setmetatable(default, slider)
+	return setmetatable(self, slider)
 end
 
 --------------------------------
@@ -77,14 +81,11 @@ end
 function slider:draw()
 	lg.setColor(self.baseColor)
 	lg.setLineWidth(self.width)
-
 	local ax, ay, bx, by = self.a.x + self.parent.x, self.a.y + self.parent.y,
 		self.b.x + self.parent.x, self.b.y + self.parent.y
-
 	lg.line(ax, ay, bx, by)
 
 	lg.setColor(self.fillColor)
-
 	local bx, by = common.vector(common.angle(ax, ay, bx, by), self.fill * self.length)
 	bx, by = bx + ax, by + ay
 	lg.line(ax, ay, bx, by)
@@ -137,12 +138,16 @@ end
 
 
 function slider:slide(mx, my)
+	common.assert(type(mx) == "number", "Param1 requires type number", 3)
+	common.assert(type(my) == "number", "Param2 requires type number", 3)
 	self.fill = self:pointFill(mx, my)
 	self:callback()
 end
 
 function slider:nearestPointToLine(px, py) -- for geometric line.
 	-- returns a point on the infinite line nearest px, py
+	common.assert(type(px) == "number", "Param1 requires type number", 3)
+	common.assert(type(py) == "number", "Param2 requires type number", 3)
 	local ax, ay, bx, by = self.a.x + self.parent.x, self.a.y + self.parent.y,
 		self.b.x + self.parent.x, self.b.y + self.parent.y
 	local a_p = {px - ax, py - ay}
@@ -155,6 +160,8 @@ function slider:nearestPointToLine(px, py) -- for geometric line.
 end
 
 function slider:distanceToLine(px, py) -- geometric line
+	common.assert(type(px) == "number", "Param1 requires type number", 3)
+	common.assert(type(py) == "number", "Param2 requires type number", 3)
 	local nx, ny = self:nearestPointToLine(px, py)
 	return common.dist(nx, ny, px, py)
 end
@@ -162,6 +169,8 @@ end
 function slider:pointFill(px, py)
 	-- point px, py to fill percent 0-1 from point
 	-- gets the fill level of px, py on slider.
+	common.assert(type(px) == "number", "Param1 requires type number", 3)
+	common.assert(type(py) == "number", "Param2 requires type number", 3)
 	local ax, ay, bx, by = self.a.x + self.parent.x, self.a.y + self.parent.y,
 		self.b.x + self.parent.x, self.b.y + self.parent.y
 	local npx, npy = self:nearestPointToLine(px, py)
@@ -179,6 +188,8 @@ end
 --------------------------------
 
 function slider:inBounds(mx, my)
+	common.assert(type(mx) == "number", "Param1 requires type number", 3)
+	common.assert(type(my) == "number", "Param2 requires type number", 3)
 	local ax, ay, bx, by = self.a.x + self.parent.x, self.a.y + self.parent.y,
 		self.b.x + self.parent.x, self.b.y + self.parent.y
 	local kx, ky = common.vector(common.angle(ax, ay, bx, by), self.fill * self.length)
@@ -197,21 +208,6 @@ function slider:inBounds(mx, my)
 			and (pointBetweenA_B or pointBetweenA_Fill)
 end
 
---? This has duplicate name, and seems uneccessary.
--- function slider:keyIsDown(key)
--- 	for i = 1, #self.triggerMouse do
--- 		if key and key == self.triggerMouse[i] or not key and lm.isDown(self.triggerMouse[i]) then
--- 			return true, self.triggerMouse[i]
--- 		ends
--- 	end
--- 	for i = 1, #self.triggerKeyboard do
--- 		if key and key == self.triggerKeyboard[i] or not key and love.keyboard.isDown(self.triggerKeyboard[i]) then
--- 			return true, self.triggerKeyboard[i]
--- 		end
--- 	end
--- 	return false
--- end
-
 -- get value from range
 function slider:getValue()
 	return common.map(self.fill, 0, 1, self.range[1], self.range[2], true)
@@ -224,34 +220,41 @@ end
 -- range(optional) is to fill based on position in range
 -- if range is true, pass a number to fill based on that numbers position in the range.
 function slider:setFill(fill, range)
+	common.assert(type(fill) == "number", "Param1 requires type number", 3)
 	self.fill = range and common.map(fill, self.range[1], self.range[2],
 		0, 1, self.clampFill) or fill
 	-- didn't finish this.  If range, then set fill percent to it's place in range
 end
 
 function slider:addFill(fill)
+	common.assert(type(fill) == "number", "Param1 requires type number", 3)
 	self.fill = common.clamp(self.fill + fill, 0, 1)
 end
 
 function slider:setPosition(x, y)
+	common.assert(type(x) == "number", "Param1 requires type number", 3)
+	common.assert(type(y) == "number", "Param2 requires type number", 3)
 	local b = {common.vector(self.angle, self.length)}
 	self.a = {x = x + self.parent.x, y = y + self.parent.y}
 	self.b = {x = b[1] + x + self.parent.x, y = b[2] + y + self.parent.y}
 end
 
 function slider:setLength(len)
+	common.assert(type(len) == "number", "Param1 requires type number", 3)
 	self.length = len
 	local b = {common.vector(self.angle, len)}
 	self.b = {x = b[1] + self.a.x, y = b[2] + self.a.y}
 end
 
 function slider:setAngle(angle)
+	common.assert(type(angle) == "number", "Param1 requires type number", 3)
 	self.angle = angle
 	local b = {common.vector(self.angle, self.length)}
 	self.b = {x = b[1] + self.a.x + self.parent.x, y = b[2] + self.a.y + self.parent.y}
 end
 
 function slider:addAngle(angle)
+	common.assert(type(angle) == "number", "Param1 requires type number", 3)
 	self:setAngle(self.angle + angle)
 end
 
