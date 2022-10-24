@@ -67,11 +67,11 @@ end
 function button.newPolygonButton(x, y, vertices, extra)
 	assert(type(vertices) == "table", "Parameter #3 requires table of vertices.")
 
-	local properties = getDefault()
-	properties.shape = lg.polygon
-	properties.vertices = vertices
-	properties.x, properties.y = x, y
-	properties = common.merge(properties, extra)
+	local self = getDefault()
+	self.shape = lg.polygon
+	self.vertices = vertices
+	self.x, self.y = x, y
+	self = common.merge(self, extra)
 
 	local minx, miny, maxx, maxy = math.huge, math.huge, -math.huge, -math.huge
 	local xt, yt = {}, {}
@@ -85,10 +85,10 @@ function button.newPolygonButton(x, y, vertices, extra)
 		table.insert(yt, vertices[i+1])
 
 	end
-	properties.w, properties.h = math.abs(maxx - minx), math.abs(maxy - miny)
-	properties.centerx, properties.centery = common.average(xt), common.average(yt)
+	self.w, self.h = math.abs(maxx - minx), math.abs(maxy - miny)
+	self.centerx, self.centery = common.average(xt), common.average(yt)
 
-	return setmetatable(properties, button)
+	return setmetatable(self, button)
 end
 
 --
@@ -102,16 +102,16 @@ function button.newRectangleButton(l, t, w, h, extra)
 end
 
 function button.newArcButton(x, y, radius, angle1, angle2, extra)
-	local properties = getDefault()
-	properties.centerx, properties.centery = 0, 0
-	properties.x, properties.y, properties.radius = x, y, radius
-	properties.angle1, properties.angle2 = angle1, angle2
-	properties.shape = lg.arc
-	properties.arctype = "pie"
-	properties.textOrientation = "angled"
-	properties = common.merge(properties, extra)
+	local self = getDefault()
+	self.centerx, self.centery = 0, 0
+	self.x, self.y, self.radius = x, y, radius
+	self.angle1, self.angle2 = angle1, angle2
+	self.shape = lg.arc
+	self.arctype = "pie"
+	self.textOrientation = "angled"
+	self = common.merge(self, extra)
 
-	return setmetatable(properties, button)
+	return setmetatable(self, button)
 end
 
 function button.newAngleButton(x, y, radius, startAngle, addAngle, extra)

@@ -28,12 +28,6 @@ function slider.new(x1, y1, angle, length, width, segments)
 	-- if you desire custom segment locations, (array) segments to designate where they will be 0-1.
 	-- example: {0, 0.1, 0.9, 1} puts segments at the start, 10% in, 90% in and at the end.
 
-	-- local quickAngles = {
-	-- 	left = 0,
-	-- 	right = math.pi,
-	-- 	bottom = math.pi/2*3,
-	-- 	top = math.pi/2
-	-- }
 	angle = common.angles[angle] or angle -- simplify common angles
 
 	local b = {common.vector(angle, length)}

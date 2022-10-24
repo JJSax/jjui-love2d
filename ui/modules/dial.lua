@@ -33,32 +33,29 @@ local common = require((...):gsub('%.[^%.]*%.[^%.]+$', '')..".common")
 
 function dial.new(x, y, radius, options)
 	-- this mostly is for singular positioning.
-	options = options or {}
-	options.x, options.y, options.radius = x, y, radius
-	options.positionType = "center"
-	options.buttons = {}
-	options.parent = ORIGIN
-	return setmetatable(options, dial)
+
+	local self = setmetatable({}, dial)
+
+	self.x, self.y, self.radius = x, y, radius
+	self.positionType = "center"
+	self.buttons = {}
+	self.parent = ORIGIN
+
+	common.merge(self, options)
+
+	return self
 end
 
 function dial:newArcButton(angle1, angle2, options)
 
-	local default = {
-		outlineColor = {1,1,1,1},
-		hoverOutlineColor = {1,1,1,1},
-		pressedOutlineColor = {1,1,1,1},
-		selectedOutlineColor = {1,1,1,1},
-		hoverSelectedOutlineColor = {1,1,1,1},
-		pressedSelectedOutlineColor = {1,1,1,1}
-	}
+	local button = Button.newArcButton(0, 0, self.radius, angle1, angle2, options)
 
-	options = options or {}
-	options.dial = self
-	options.parent = self
-	options = common.merge(default, options)
+	button.dial = self
+	button.parent = self
+	common.merge(button, options)
 
-	table.insert(self.buttons, Button.newArcButton(0, 0, self.radius, angle1, angle2, options))
-	return self.buttons[#self.buttons]
+	table.insert(self.buttons, button)
+	return button
 end
 
 function dial:newAngleButton(angle, addAngle, options)
@@ -80,16 +77,15 @@ function dial:newWeightedButton(weight, options)
 	local dAngle = self.angle2 - self.angle1
 	local curAngle = self.angle1
 
-	local this = self:newArcButton(0, 0, options)
+	local button = self:newArcButton(0, 0, options)
 
 	for k,v in pairs(self.buttons) do
-	-- print(self.angle1, self.angle2, dAngle, weight / totalWeight)
 		v.angle1 = curAngle
 		v.angle2 = curAngle + dAngle * (v.weight / totalWeight)
 		curAngle = v.angle2
 	end
 
-	return this
+	return button
 end
 
 -----------------------------------------------
