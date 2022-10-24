@@ -38,12 +38,11 @@ function common.map(n, start1, stop1, start2, stop2, Clamp)
 	if not Clamp then return mapped end
 	if start2 < stop2 then
 		return common.clamp(mapped, start2, stop2)
-	else
-		return common.clamp(mapped, stop2, start2)
 	end
+	return common.clamp(mapped, stop2, start2)
 end
 
-function common.inRange(num, mn, mx) -- do I want to require mn before mx?
+function common.inRange(num, mn, mx) --? do I want to require mn before mx?
 	return (num >= mn and num <= mx) or (num <= mn and num >= mx)
 end
 
@@ -67,15 +66,13 @@ end
 
 function common.inside(tab, var)
 	for k,v in pairs(tab) do
-		if v == var then
-			return true
-		end
+		if v == var then return true end
 	end
 	return false
 end
 
 function common.uncapitalize(str)
-	return string.lower(str:sub(1, 1))..str:sub(2, string.len(str))
+	return str:gsub("^%u", string.lower)
 end
 
 
@@ -107,6 +104,11 @@ function common.pointInRect(x, y, bx, by, bw, bh)
 end
 
 function common.between(a1, a2, target)
+
+	--@ a1/a2 is first/second angle
+	--@ target is the angle to target point
+	--* Returns true if target angle is between a1 and a2
+
 	local min = math.min(a1, a2)
 	local max = math.max(a1,a2)
 	local diff = max - min

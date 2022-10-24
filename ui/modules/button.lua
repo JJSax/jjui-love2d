@@ -1,7 +1,7 @@
 
 local button = {}
 button.__index = button
-button._version = "0.9.6"
+button._version = "0.9.7"
 
 local ORIGIN = {x = 0, y = 0}
 
@@ -26,21 +26,6 @@ local function getDefault()
 		hovered = false,
 		selected = false,
 		triggerMouse = {1}, triggerKeyboard = {}, -- array of buttons to detect isDown
-
-		-- Prompting
-		-- promptText = "",
-		-- promptFont = lg.getFont(),
-		-- promptTextColor = {1,1,1,1},
-		-- promptColor = {0,0,0,0},
-		-- promptOutlineColor = {0,0,0,0},
-		-- promptOutlineWidth = 1,
-		-- promptTextBackgroundBuffer = {2, 2}, -- this is the extra space around prompt text
-
-		-- promptOffset = {0, 0},
-		-- promptPosition = nil,
-		-- hoverPromptTime = 1,
-		-- prompting = false,
-		-- lockPromptToWindow = true,
 
 		pressTime = 0,
 		heldTriggerTime = 1,
@@ -255,12 +240,7 @@ function button:mousereleased(x, y, key, istouch, presses)
 	self.origPress = false
 end
 function button:mouseIsDown()
-	for k,v in ipairs(self.triggerMouse) do
-		if love.mouse.isDown(v) then
-			return true
-		end
-	end
-	return false
+	return love.mouse.isDown(self.triggerMouse)
 end
 
 function button:keypressed(key, istouch, presses)
@@ -283,12 +263,7 @@ function button:keyreleased(key, istouch, presses)
 	self.origPress = false
 end
 function button:keyIsDown()
-	for k,v in ipairs(self.triggerKeyboard) do
-		if love.keyboard.isDown(v) then
-			return true
-		end
-	end
-	return false
+	return love.keyboard.isDown(self.triggerKeyboard)
 end
 
 -- draws popup message  Put in love's draw loop after other buttons it may overlap
@@ -368,17 +343,7 @@ end
 
 -- if key not passed, it will check if it is down.
 function button:anyIsDown(key)
-	for i = 1, #self.triggerMouse do
-		if key and key == self.triggerMouse[i] or not key and love.mouse.isDown(self.triggerMouse[i]) then
-			return true, self.triggerMouse[i]
-		end
-	end
-	for i = 1, #self.triggerKeyboard do
-		if key and key == self.triggerKeyboard[i] or not key and love.keyboard.isDown(self.triggerKeyboard[i]) then
-			return true, self.triggerKeyboard[i]
-		end
-	end
-	return false
+	return self:keyIsDown() or self:mouseIsDown()
 end
 
 -- Toggles if the button is considered selected or not.
@@ -444,8 +409,8 @@ function button:setVar(var, value, ...)
 	elseif not input then
 		self[var] = value
 	elseif type(input) == "table" then
-		for k,v in pairs( input ) do
-			self[v] = value
+		for i = 1, #input, 2 do
+			self.state[i][i+1] = value
 		end
 	end
 end
