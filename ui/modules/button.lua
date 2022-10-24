@@ -1,19 +1,21 @@
 
 local button = {}
 button.__index = button
-button._version = "0.9.7"
+button._version = "0.9.8"
 
 local ORIGIN = {x = 0, y = 0}
 
 local lg = love.graphics
-local common = require((...):gsub('%.[^%.]*%.[^%.]+$', '')..".common")
+local uiRoot = (...):gsub('%.[^%.]*%.[^%.]+$', '')
+local common = require(uiRoot..".common")
+local Set = require(uiRoot..".Set")
 
 -------------------------------------------
 -------------Local Functions---------------
 -------------------------------------------
 
 local function getDefault()
-	local default = {
+	local self = {
 		rotation = 0,
 		parent = ORIGIN,
 		visible = true,
@@ -31,14 +33,14 @@ local function getDefault()
 		heldTriggerTime = 1,
 		held = false,
 	}
-	default.prompt = common.newVarSet()
-	default.prompt.offset = {0,0}
-	default.prompt.position = nil
-	default.prompt.hoverTime = 1
-	default.prompt.prompting = false
-	default.prompt.lockToWindow = true
-	common.standardButton(default)
-	return default
+	self.prompt = common.newVarSet()
+	self.prompt.offset = {0,0}
+	self.prompt.position = nil
+	self.prompt.hoverTime = 1
+	self.prompt.prompting = false
+	self.prompt.lockToWindow = true
+	common.standardButton(self)
+	return self
 end
 
 --------------------------------------------
@@ -61,8 +63,8 @@ function button.newPolygonButton(x, y, vertices, extra)
 	local minx, miny, maxx, maxy = math.huge, math.huge, -math.huge, -math.huge
 	local xt, yt = {}, {}
 	for i = 1, #vertices, 2 do
-		if vertices[i] < minx then minx = vertices[i] end
-		if vertices[i] > maxx then maxx = vertices[i] end
+		if vertices[i]   < minx then minx = vertices[i] end
+		if vertices[i]   > maxx then maxx = vertices[i] end
 		if vertices[i+1] < miny then miny = vertices[i+1] end
 		if vertices[i+1] > maxy then maxy = vertices[i+1] end
 
@@ -71,7 +73,8 @@ function button.newPolygonButton(x, y, vertices, extra)
 
 	end
 	self.w, self.h = math.abs(maxx - minx), math.abs(maxy - miny)
-	self.centerx, self.centery = common.average(xt), common.average(yt)
+	-- self.centerx, self.centery = common.average(xt), common.average(yt) --? Why did I use average?
+	self.centerx, self.centery = minx + (maxx - minx)/2, miny + (maxy - miny)/2
 
 	return setmetatable(self, button)
 end
@@ -125,10 +128,10 @@ function button:update(dt)
 			self.onEnter()
 			self.hovered = true
 		end
+		self.hoverTime = self.hoverTime + dt
 		if self.hoverTime > self.hoverFuncTime then
 			self.hover()
 		end
-		self.hoverTime = self.hoverTime + dt
 
 		if self.pressed then
 			self.pressTime = self.pressTime + dt
@@ -217,16 +220,14 @@ function button:draw()
 	lg.print(txt, txtx, txty, tr, 1, 1,
 		math.floor(state.font:getWidth(txt)/2), math.floor(state.font:getHeight()/2))
 
-
 	lg.pop()
 end
 
 function button:mousepressed(x, y, key, istouch, presses)
-	if self:inBounds(x,y) then
-		if common.inside(self.triggerMouse, key) then
-			self.origPress = true
-			self:onPress(x, y, key, istouch, presses)
-		end
+	if not self:inBounds(x,y) then return false end
+	if common.inside(self.triggerMouse, key) then
+		self.origPress = true
+		self:onPress(x, y, key, istouch, presses)
 	end
 end
 function button:mousereleased(x, y, key, istouch, presses)
@@ -342,7 +343,7 @@ function button:inBounds(x,y)
 end
 
 -- if key not passed, it will check if it is down.
-function button:anyIsDown(key)
+function button:anyIsDown()
 	return self:keyIsDown() or self:mouseIsDown()
 end
 
@@ -375,27 +376,26 @@ end
 
 
 --[[
-	varargs (...) for the following functions can be use like...
-	false/nil will only set the main variable (the first one under if input == true)
-	true will set all button states to that variable
+	@param3 true will set all button states to that variable
 	table of variable strings to set those variables
 		-- i.e. button:setText example
-		button:setText("this is a test button!",
+		button:setVar("this is a test button!",
 			{"selectedText", "pressedSelectedText", "hoverSelectedText"})
 ]]
+local validVar = Set.new{
+	"text", "textRotation", "textColor", "textBackgroundColor",
+	"textXOffset", "textYOffset", "textBackgroundBuffer", "font",
+	"image", "color", "outlineColor", "outlineWidth"
+}
 function button:setVar(var, value, ...)
 
-	--[[
-		Valid Var is case sensitive.
-		This function is for a quick way to set multiple variables.
-	]]
+	-- @Valid Var is case sensitive.
+	-- @var is the variable name.  changing the state color would be "color"
+	-- @value is what to set it to
+	-- @param3 true will set all button states to that variable
+	-- *This function is for a quick way to set multiple variables.
 
-	local validVar = {
-		"text", "textRotation", "textColor", "textBackgroundColor",
-		"textXOffset", "textYOffset", "textBackgroundBuffer", "font",
-		"image", "color", "outlineColor", "outlineWidth"
-	}
-	common.assert(common.inside(validVar, var),
+	common.assert(validVar[var],
 		"Valid param1 not passed. valid options are\n"..
 		table.concat( validVar, "\n"),
 		3
