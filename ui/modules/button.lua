@@ -407,10 +407,14 @@ function button:setVar(var, value, ...)
 			state[var] = value
 		end
 	elseif not input then
-		self[var] = value
+		self.state.default[false][var] = value
 	elseif type(input) == "table" then
-		for i = 1, #input, 2 do
-			self.state[i][i+1] = value
+		--* e.g. {{"default", false}, {"pressed", true}}
+		if type(input[1]) ~= "table" then
+			input = {input} -- single variable
+		end
+		for i, v in ipairs(input) do
+			self.state[v[1]][v[2]][var] = value
 		end
 	end
 end
