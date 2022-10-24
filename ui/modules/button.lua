@@ -1,7 +1,7 @@
 
 local button = {}
 button.__index = button
-button._version = "0.9.3"
+button._version = "0.9.4"
 
 local ORIGIN = {x = 0, y = 0}
 
@@ -317,12 +317,7 @@ function button:mousereleased(x, y, key, istouch, presses)
 	self.origPress = false
 end
 function button:mouseIsDown()
-	for k,v in ipairs(self.triggerMouse) do
-		if love.mouse.isDown(v) then
-			return true
-		end
-	end
-	return false
+	return love.mouse.isDown(self.triggerMouse)
 end
 
 function button:keypressed(key, istouch, presses)
@@ -345,12 +340,7 @@ function button:keyreleased(key, istouch, presses)
 	self.origPress = false
 end
 function button:keyIsDown()
-	for k,v in ipairs(self.triggerKeyboard) do
-		if love.keyboard.isDown(v) then
-			return true
-		end
-	end
-	return false
+	return love.keyboard.isDown(self.triggerKeyboard)
 end
 
 -- draws popup message  Put in love's draw loop after other buttons it may overlap
@@ -429,18 +419,8 @@ function button:inBounds(x,y)
 end
 
 -- if key not passed, it will check if it is down.
-function button:anyIsDown(key)
-	for i = 1, #self.triggerMouse do
-		if key and key == self.triggerMouse[i] or not key and love.mouse.isDown(self.triggerMouse[i]) then
-			return true, self.triggerMouse[i]
-		end
-	end
-	for i = 1, #self.triggerKeyboard do
-		if key and key == self.triggerKeyboard[i] or not key and love.keyboard.isDown(self.triggerKeyboard[i]) then
-			return true, self.triggerKeyboard[i]
-		end
-	end
-	return false
+function button:anyIsDown()
+	return self:keyIsDown() or self:mouseIsDown()
 end
 
 -- Toggles if the button is considered selected or not.
