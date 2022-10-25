@@ -11,9 +11,9 @@ function common.assert(expect, msg, stack)
 	end
 end
 
-function common.expect(value, type)
-	if not type(value) == type then
-		error(string.format("Invalid parameter passed.  Expected %s, got %s.", type, value), 3)
+function common.expect(value, vType, paramNum)
+	if type(value) ~= vType then
+		error(string.format("Invalid parameter #%d passed.  Expected %s, got %s.", paramNum, vType, value), 3)
 	end
 end
 

@@ -33,10 +33,11 @@ function slider.new(x1, y1, angle, length, extra)
 	-- }})
 	-- the beginning of the segment is implied to start at 0
 
-	common.assert(x1, "requires x value to be passed", 3)
-	common.assert(y1, "requires y value to be passed", 3)
-	common.assert(angle, "requires angle value to be passed", 3)
-	common.assert(length, "requires length value to be passed", 3)
+	angle = geometry.angles[angle] or angle -- simplify common angles
+	common.expect(x1, "number", 1)
+	common.expect(y1, "number", 2)
+	common.expect(angle, "number", 3)
+	common.expect(length, "number", 4)
 
 	extra = extra or {}
 	extra.segments = extra.segments or {{1, ""}}
@@ -49,7 +50,6 @@ function slider.new(x1, y1, angle, length, extra)
 	end
 	common.assert(seg[#seg][1] == 1, "Last segment required to end at 1", 3)
 
-	angle = geometry.angles[angle] or angle -- simplify common angles
 	local b = {geometry.vector(angle, length)}
 	local self = {
 		parent = ORIGIN,
@@ -201,24 +201,24 @@ end
 
 
 function slider:slide(mx, my)
-	common.assert(type(mx) == "number", "Param1 requires type number", 3)
-	common.assert(type(my) == "number", "Param2 requires type number", 3)
+	common.expect(mx, "number", 1)
+	common.expect(my, "number", 2)
 	self.fill = self:pointFill(mx, my)
 	self:callback()
 end
 
 function slider:nearestPointToLine(px, py) -- for geometric line.
 	-- returns a point on the infinite line nearest px, py
-	common.assert(type(px) == "number", "Param1 requires type number", 3)
-	common.assert(type(py) == "number", "Param2 requires type number", 3)
+	common.expect(px, "number", 1)
+	common.expect(py, "number", 2)
 	local ax, ay, bx, by = self.a.x + self.parent.x, self.a.y + self.parent.y,
 		self.b.x + self.parent.x, self.b.y + self.parent.y
 	return geometry.nearestPointToLine(px, py, ax, ay, bx, by)
 end
 
 function slider:distanceToLine(px, py) -- geometric line
-	common.assert(type(px) == "number", "Param1 requires type number", 3)
-	common.assert(type(py) == "number", "Param2 requires type number", 3)
+	common.expect(px, "number", 1)
+	common.expect(py, "number", 2)
 	-- local nx, ny = self:nearestPointToLine(px, py)
 	return geometry.dist(px, py, self:nearestPointToLine(px, py))
 end
@@ -226,8 +226,8 @@ end
 function slider:pointFill(px, py)
 	-- point px, py to fill percent 0-1 from point
 	-- gets the fill level of px, py on slider.
-	common.assert(type(px) == "number", "Param1 requires type number", 3)
-	common.assert(type(py) == "number", "Param2 requires type number", 3)
+	common.expect(px, "number", 1)
+	common.expect(py, "number", 2)
 	local ax, ay, bx, by = self.a.x + self.parent.x, self.a.y + self.parent.y,
 		self.b.x + self.parent.x, self.b.y + self.parent.y
 	local npx, npy = self:nearestPointToLine(px, py)
@@ -244,16 +244,16 @@ end
 ---------Get functions----------
 --------------------------------
 
-function slider:inBounds(mx, my)
-	common.assert(type(mx) == "number", "Param1 requires type number", 3)
-	common.assert(type(my) == "number", "Param2 requires type number", 3)
+function slider:inBounds(px, py)
+	common.expect(px, "number", 1)
+	common.expect(py, "number", 2)
 	local ax, ay, bx, by = self.a.x + self.parent.x, self.a.y + self.parent.y,
 		self.b.x + self.parent.x, self.b.y + self.parent.y
 	local kx, ky = geometry.vector(geometry.angle(ax, ay, bx, by), self.fill * self.length)
 	kx, ky = kx + ax, ky + ay
 
-	return geometry.pointOnLine(mx, my, ax, ay, bx, by, self.hoverPerpendicularBuffer + self.width)
-		or geometry.pointOnLine(mx, my, ax, ay, kx, ky, self.hoverPerpendicularBuffer + self.width)
+	return geometry.pointOnLine(px, py, ax, ay, bx, by, self.hoverPerpendicularBuffer + self.width)
+		or geometry.pointOnLine(px, py, ax, ay, kx, ky, self.hoverPerpendicularBuffer + self.width)
 end
 
 -- get value from range
@@ -268,41 +268,42 @@ end
 -- range(optional) is to fill based on position in range
 -- if range is true, pass a number to fill based on that numbers position in the range.
 function slider:setFill(fill, range)
-	common.assert(type(fill) == "number", "Param1 requires type number", 3)
+	common.expect(fill, "number", 1)
 	self.fill = range and common.map(fill, self.range[1], self.range[2],
 		0, 1, self.clampFill) or fill
 	-- didn't finish this.  If range, then set fill percent to it's place in range
 end
 
 function slider:addFill(fill)
-	common.assert(type(fill) == "number", "Param1 requires type number", 3)
+	common.expect(fill, "number", 1)
 	self.fill = common.clamp(self.fill + fill, 0, 1)
 end
 
 function slider:setPosition(x, y)
-	common.assert(type(x) == "number", "Param1 requires type number", 3)
-	common.assert(type(y) == "number", "Param2 requires type number", 3)
+	common.expect(x, "number", 1)
+	common.expect(y, "number", 2)
 	local b = {geometry.vector(self.angle, self.length)}
 	self.a = {x = x + self.parent.x, y = y + self.parent.y}
 	self.b = {x = b[1] + x + self.parent.x, y = b[2] + y + self.parent.y}
 end
 
 function slider:setLength(len)
-	common.assert(type(len) == "number", "Param1 requires type number", 3)
+	common.expect(len, "number", 1)
 	self.length = len
 	local b = {geometry.vector(self.angle, len)}
 	self.b = {x = b[1] + self.a.x, y = b[2] + self.a.y}
 end
 
 function slider:setAngle(angle)
-	common.assert(type(angle) == "number", "Param1 requires type number", 3)
+	angle = geometry.angles[angle] or angle
+	common.expect(angle, "number", 1)
 	self.angle = angle
 	local b = {geometry.vector(self.angle, self.length)}
 	self.b = {x = b[1] + self.a.x + self.parent.x, y = b[2] + self.a.y + self.parent.y}
 end
 
 function slider:addAngle(angle)
-	common.assert(type(angle) == "number", "Param1 requires type number", 3)
+	common.expect(angle, "number", 1)
 	self:setAngle(self.angle + angle)
 end
 
