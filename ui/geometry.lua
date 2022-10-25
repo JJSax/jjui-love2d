@@ -86,7 +86,7 @@ function geometry.pointOnLine(mx, my, ax, ay, bx, by, pBuff)
 	common.assert(type(mx) == "number", "Param1 requires type number", 3)
 	common.assert(type(my) == "number", "Param2 requires type number", 3)
 
-	local npx, npy = geometry.nearestPointToLine(mx, my, ax, ay, bx, by)
+	local npx, npy = geometry.nearestPointToLine(mx, my, ax, ay, bx, by) -- Make this be passed in
 	local a_b = geometry.dist(ax, ay, bx, by)
 	local np_a = geometry.dist(npx, npy, ax, ay, false)
 	local np_b = geometry.dist(npx, npy, bx, by, false)

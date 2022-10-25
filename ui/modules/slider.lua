@@ -17,8 +17,44 @@ local geometry = require(uiRoot..".geometry")
 --------local functions---------
 --------------------------------
 
-local function func()
+local function getSegmentsInLine(self, ax, ay, bx, by)
 
+	--* return all segment points in line ax, ay, bx, by
+	--* return as {{ax, ay}, {point2x, point2y}}
+
+	local len = geometry.dist(ax, ay, bx, by, true)
+	local points = {{ax, ay}}
+	for i, v in ipairs(self.segments) do
+		local np = {geometry.vector2(points[1][1], points[1][2], self.angle, self.length * v[1])}
+		if geometry.dist(ax, ay, np[1], np[2], true) >= len then
+			np = {geometry.vector2(points[1][1], points[1][2], self.angle, math.sqrt(len))}
+		end
+		table.insert(points, np)
+	end
+	return points
+end
+
+local function drawLine(self, segs)
+	--? I'm not doing both lines in the same loop because the last section has different bit.
+	local mx, my = lm.getPosition()
+	lg.push("all")
+	for i, v in ipairs(segs) do
+		if segs[i+1] then
+			local vx, vy = geometry.vector2(v[1], v[2], self.angle, self.segmentGap)
+			if i == #segs then
+				vx, vy = v[1], v[2]
+			end
+			local bx, by = segs[i+1][1], segs[i+1][2]
+			lg.setLineWidth(self.width)
+			local npx, npy = geometry.nearestPointToLine(mx, my, vx, vy, bx, by)
+			local dist = geometry.distanceToLine(mx, my, npx, npy)
+			if dist <= self.width and geometry.pointOnLine(npx, npy, vx, vy, bx, by, 0) then
+				lg.setLineWidth(self.width + self.hoverExpand)
+			end
+			lg.line(vx, vy, bx, by)
+		end
+	end
+	lg.pop()
 end
 
 --------------------------------
@@ -106,33 +142,14 @@ function slider:draw()
 	local lastPoint = {ax, ay}
 	local mx, my = lm.getPosition()
 	local onSegment, hLastPoint, hNext, seg
-	for i, v in ipairs(self.segments) do
-		local len = (self.length - self.segmentGap * i) * (v[1] - last)
-		local next = {geometry.vector2(lastPoint[1], lastPoint[2], self.angle, len)}
-		lg.push("all")
-		if geometry.pointOnLine(
-			mx, my, lastPoint[1], lastPoint[2], next[1], next[2], self.width
-		) then
-			onSegment = i
-		end
-
-		lg.setLineWidth(self.width + (onSegment == i and self.hoverExpand or 0))
-		lg.line(lastPoint[1], lastPoint[2], next[1], next[2])
-		if onSegment == i then
-			hLastPoint = lastPoint
-			hNext = next
-			seg = v
-		end
-		lg.pop()
-
-		last = v[1]
-		lastPoint = {geometry.vector2(next[1], next[2], self.angle, self.segmentGap)}
-	end
+	local seg = getSegmentsInLine(self, ax, ay, bx, by)
+	drawLine(self, seg)
 
 	lg.setColor(self.fillColor)
-	local bx, by = geometry.vector(geometry.angle(ax, ay, bx, by), self.fill * self.length)
-	bx, by = bx + ax, by + ay
-	lg.line(ax, ay, bx, by)
+	local bx, by = geometry.vector2(ax, ay, self.angle, self.fill * self.length)
+	seg = getSegmentsInLine(self, ax, ay, bx, by)
+	drawLine(self, seg)
+	-- lg.line(ax, ay, bx, by)
 
 	if onSegment then -- draw segment text if hovered
 		lg.push("all")
