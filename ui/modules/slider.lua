@@ -8,46 +8,65 @@ local lm = love.mouse
 local lg = love.graphics
 local ORIGIN = {x = 0, y = 0}
 
-local common = require((...):gsub('%.[^%.]*%.[^%.]+$', '')..".common")
+local uiRoot = (...):gsub('%.[^%.]*%.[^%.]+$', '')
+local common = require(uiRoot..".common")
+local geometry = require(uiRoot..".geometry")
 
 
 --------------------------------
 --------local functions---------
 --------------------------------
 
+local function func()
 
+end
 
 --------------------------------
 ----------Constructors----------
 --------------------------------
 
-function slider.new(x1, y1, angle, length, width, segments)
-	-- slider at any angle
-
-	-- segments not implimented yet.
+function slider.new(x1, y1, angle, length, extra)
 	-- if you desire custom segment locations, (array) segments to designate where they will be 0-1.
-	-- example: {0, 0.1, 0.9, 1} puts segments at the start, 10% in, 90% in and at the end.
+	-- example: {0.2, "", 0.9, ""} puts will look like ->  --|-----|-
+	-- slider.new(150, 50, "left", 200, {width = 5, segments = {
+	-- 	{0.2, "intro"}, {0.5, "start"}, {1, "end"}
+	-- }})
+	-- the beginning of the segment is implied to start at 0
 
 	common.assert(x1, "requires x value to be passed", 3)
 	common.assert(y1, "requires y value to be passed", 3)
 	common.assert(angle, "requires angle value to be passed", 3)
 	common.assert(length, "requires length value to be passed", 3)
 
-	angle = common.angles[angle] or angle -- simplify common angles
-	local b = {common.vector(angle, length)}
+	extra = extra or {}
+	extra.segments = extra.segments or {{1, ""}}
+	local seg = extra.segments
+	common.assert(type(seg) == "table", "Param: segments expects table.  Got: "..type(seg), 3)
+	for i, v in ipairs(seg) do
+		common.assert(type(v[1]) == "number", "Expected format of segments: {0.2, \"test\"}", 3)
+		common.assert(v[1] >= 0, "All segment valus must be greater than 0", 3)
+		common.assert(v[1] <= 1, "All segment valus must be less than 1", 3)
+	end
+	common.assert(seg[#seg][1] == 1, "Last segment required to end at 1", 3)
 
+	angle = geometry.angles[angle] or angle -- simplify common angles
+	local b = {geometry.vector(angle, length)}
 	local self = {
 		parent = ORIGIN,
 		a = {x = x1, y = y1},
 		b = {x = b[1] + x1, y = b[2] + y1},
 		angle = angle, length = length,
-		width = width or 5, -- how wide the slider is.
+		width = extra.width or 5, -- how wide the slider is.
+		segments = extra.segments or {},
+		segmentGap = 2,
 
 		-- if the bar is horizontal, the hoverPerpendicularBuffer is amount above or below
 		-- -- and the hoverParallelBuffer is left and right
 		hoverPerpendicularBuffer = 5,
 		hoverParallelBuffer = 5,
-		-- segments = segments,
+		hoverExpand = 3, --The amount the width should bulge when hovered
+
+
 		knobImage = nil,
 		knobOnHover = false, -- if false, it will always show. If you don't want a knob, don't make one.
 		knobScale = {1,1},
@@ -83,12 +102,56 @@ function slider:draw()
 	lg.setLineWidth(self.width)
 	local ax, ay, bx, by = self.a.x + self.parent.x, self.a.y + self.parent.y,
 		self.b.x + self.parent.x, self.b.y + self.parent.y
-	lg.line(ax, ay, bx, by)
+	local last = 0 -- from this fill level to next
+	local lastPoint = {ax, ay}
+	local mx, my = lm.getPosition()
+	local onSegment, hLastPoint, hNext, seg
+	for i, v in ipairs(self.segments) do
+		local len = (self.length - self.segmentGap * i) * (v[1] - last)
+		local next = {geometry.vector2(lastPoint[1], lastPoint[2], self.angle, len)}
+		lg.push("all")
+		if geometry.pointOnLine(
+			mx, my, lastPoint[1], lastPoint[2], next[1], next[2], self.width
+		) then
+			onSegment = i
+		end
+
+		lg.setLineWidth(self.width + (onSegment == i and self.hoverExpand or 0))
+		lg.line(lastPoint[1], lastPoint[2], next[1], next[2])
+		if onSegment == i then
+			hLastPoint = lastPoint
+			hNext = next
+			seg = v
+		end
+		lg.pop()
+
+		last = v[1]
+		lastPoint = {geometry.vector2(next[1], next[2], self.angle, self.segmentGap)}
+	end
 
 	lg.setColor(self.fillColor)
-	local bx, by = common.vector(common.angle(ax, ay, bx, by), self.fill * self.length)
+	local bx, by = geometry.vector(geometry.angle(ax, ay, bx, by), self.fill * self.length)
 	bx, by = bx + ax, by + ay
 	lg.line(ax, ay, bx, by)
+
+	if onSegment then -- draw segment text if hovered
+		lg.push("all")
+		lg.setColor(seg.textColor or {1,1,1,1})
+		local font = seg.font or lg.getFont()
+		lg.setFont(font)
+		local midx, midy = geometry.midPoint(hLastPoint[1], hLastPoint[2], hNext[1], hNext[2])
+		local perpendicular = -math.pi/2
+		local angle = self.angle
+		if self.a.x > self.b.x then
+			perpendicular = perpendicular + math.pi
+			angle = self.angle + math.pi
+		end
+		local tx, ty = geometry.vector2(midx, midy, self.angle + perpendicular, font:getHeight())
+		lg.print(seg[2], tx, ty, angle,
+			1, 1, font:getWidth(seg[2])/2,  font:getHeight()/2
+		)
+		lg.pop()
+	end
 
 	if not self.knobImage then return end
 	if self.knobOnHover and self:inBounds(lm.getPosition()) or not self.knobOnHover then
@@ -150,20 +213,14 @@ function slider:nearestPointToLine(px, py) -- for geometric line.
 	common.assert(type(py) == "number", "Param2 requires type number", 3)
 	local ax, ay, bx, by = self.a.x + self.parent.x, self.a.y + self.parent.y,
 		self.b.x + self.parent.x, self.b.y + self.parent.y
-	local a_p = {px - ax, py - ay}
-	local a_b = {bx - ax, by - ay}
-	local atb2 = a_b[1]^2 + a_b[2]^2 -- same as distance
-	local atp_dot_atb = a_p[1] * a_b[1] + a_p[2] * a_b[2]
-	local t = atp_dot_atb / atb2
-
-	return ax + a_b[1] * t, ay + a_b[2] * t
+	return geometry.nearestPointToLine(px, py, ax, ay, bx, by)
 end
 
 function slider:distanceToLine(px, py) -- geometric line
 	common.assert(type(px) == "number", "Param1 requires type number", 3)
 	common.assert(type(py) == "number", "Param2 requires type number", 3)
-	local nx, ny = self:nearestPointToLine(px, py)
-	return common.dist(nx, ny, px, py)
+	-- local nx, ny = self:nearestPointToLine(px, py)
+	return geometry.dist(px, py, self:nearestPointToLine(px, py))
 end
 
 function slider:pointFill(px, py)
@@ -174,10 +231,10 @@ function slider:pointFill(px, py)
 	local ax, ay, bx, by = self.a.x + self.parent.x, self.a.y + self.parent.y,
 		self.b.x + self.parent.x, self.b.y + self.parent.y
 	local npx, npy = self:nearestPointToLine(px, py)
-	local a_b = common.dist(ax, ay, bx, by, false)
-	local a_p = common.dist(ax, ay, npx, npy, false)
-	local a_np = common.dist(ax, ay, npx, npy, false)
-	local b_np = common.dist(bx, by, npx, npy, false)
+	local a_b = geometry.dist(ax, ay, bx, by, false)
+	local a_p = geometry.dist(ax, ay, npx, npy, false)
+	local a_np = geometry.dist(ax, ay, npx, npy, false)
+	local b_np = geometry.dist(bx, by, npx, npy, false)
 
 	if a_np < a_b and b_np < a_b then return a_p / a_b end -- percent 0-1
 	if a_np < b_np then return self.clampFill and 0 or -(a_p / a_b) end
@@ -192,20 +249,11 @@ function slider:inBounds(mx, my)
 	common.assert(type(my) == "number", "Param2 requires type number", 3)
 	local ax, ay, bx, by = self.a.x + self.parent.x, self.a.y + self.parent.y,
 		self.b.x + self.parent.x, self.b.y + self.parent.y
-	local kx, ky = common.vector(common.angle(ax, ay, bx, by), self.fill * self.length)
+	local kx, ky = geometry.vector(geometry.angle(ax, ay, bx, by), self.fill * self.length)
 	kx, ky = kx + ax, ky + ay
 
-	local npx, npy = self:nearestPointToLine(mx, my)
-	local np_a = common.dist(npx, npy, ax, ay, false)
-	local np_b = common.dist(npx, npy, bx, by, false)
-	local np_k = common.dist(npx, npy, kx, ky, false)
-
-	local pointBetweenA_B = np_b < self.hoverParallelBuffer + self.length and np_a < self.hoverParallelBuffer + self.length
-	local distCheck = self.hoverParallelBuffer + self.length * math.abs(self.fill)
-	local pointBetweenA_Fill = np_a < distCheck and np_k < distCheck
-
-	return self:distanceToLine(mx, my) <= self.hoverPerpendicularBuffer + self.width
-			and (pointBetweenA_B or pointBetweenA_Fill)
+	return geometry.pointOnLine(mx, my, ax, ay, bx, by, self.hoverPerpendicularBuffer + self.width)
+		or geometry.pointOnLine(mx, my, ax, ay, kx, ky, self.hoverPerpendicularBuffer + self.width)
 end
 
 -- get value from range
@@ -234,7 +282,7 @@ end
 function slider:setPosition(x, y)
 	common.assert(type(x) == "number", "Param1 requires type number", 3)
 	common.assert(type(y) == "number", "Param2 requires type number", 3)
-	local b = {common.vector(self.angle, self.length)}
+	local b = {geometry.vector(self.angle, self.length)}
 	self.a = {x = x + self.parent.x, y = y + self.parent.y}
 	self.b = {x = b[1] + x + self.parent.x, y = b[2] + y + self.parent.y}
 end
@@ -242,14 +290,14 @@ end
 function slider:setLength(len)
 	common.assert(type(len) == "number", "Param1 requires type number", 3)
 	self.length = len
-	local b = {common.vector(self.angle, len)}
+	local b = {geometry.vector(self.angle, len)}
 	self.b = {x = b[1] + self.a.x, y = b[2] + self.a.y}
 end
 
 function slider:setAngle(angle)
 	common.assert(type(angle) == "number", "Param1 requires type number", 3)
 	self.angle = angle
-	local b = {common.vector(self.angle, self.length)}
+	local b = {geometry.vector(self.angle, self.length)}
 	self.b = {x = b[1] + self.a.x + self.parent.x, y = b[2] + self.a.y + self.parent.y}
 end
 

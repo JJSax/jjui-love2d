@@ -5,16 +5,15 @@ local common = {
 common.__index = common
 local lg = love.graphics
 
-common.angles = {
-	left = 0,
-	right = math.pi,
-	bottom = math.pi/2*3,
-	top = math.pi/2
-}
-
 function common.assert(expect, msg, stack)
 	if not expect then
 		error(msg, stack)
+	end
+end
+
+function common.expect(value, type)
+	if not type(value) == type then
+		error(string.format("Invalid parameter passed.  Expected %s, got %s.", type, value), 3)
 	end
 end
 
@@ -31,6 +30,11 @@ end
 
 function common.vector(angle, magnitude)
 	return math.cos(angle) * magnitude, math.sin(angle) * magnitude
+end
+
+function common.vector2(x, y, angle, magnitude)
+	local vx, vy = common.vector(angle, magnitude)
+	return x + vx, y + vy
 end
 
 function common.map(n, start1, stop1, start2, stop2, Clamp)
