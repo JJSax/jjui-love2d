@@ -31,6 +31,10 @@ local function getSegmentsInLine(self, ax, ay, bx, by)
 		end
 		table.insert(points, np)
 	end
+	if self.fill > 1 then
+		points[#points] = {bx, by} -- combines spillover with last segment
+		-- table.insert(points, {bx, by}) -- spillover becomes new segment
+	end
 	return points
 end
 
@@ -45,9 +49,9 @@ local function drawLine(self, segs)
 				vx, vy = v[1], v[2]
 			end
 			local bx, by = segs[i+1][1], segs[i+1][2]
-			lg.setLineWidth(self.width)
 			local npx, npy = geometry.nearestPointToLine(mx, my, vx, vy, bx, by)
 			local dist = geometry.distanceToLine(mx, my, npx, npy)
+			lg.setLineWidth(self.width)
 			if dist <= self.width and geometry.pointOnLine(npx, npy, vx, vy, bx, by, 0) then
 				lg.setLineWidth(self.width + self.hoverExpand)
 			end
