@@ -314,6 +314,7 @@ function button:onExit() end
 function button:onholdStart() end
 function button:onHold() end
 function button:onHoldStop() end
+function button:_OnToggle() end
 
 -- Returns if x,y position is inside boundary of button
 -- Adapted Polygon Collision from to Stack Overflow user Peter Gilmour
@@ -353,6 +354,7 @@ end
 	-- run this inside it's onPress or onRelease functions
 function button:toggle(bool)
 	self.selected = bool and bool or not self.selected
+	self:_OnToggle()
 end
 
 function button:getCenterAngle()

@@ -9,6 +9,7 @@ ui.modules.scroll = require(MODULES..".scrolllib")
 ui.modules.slider = require(MODULES..".slider")
 ui.modules.set = require(MODULES..".uisets")
 ui.modules.textbox = require(MODULES..".textbox")
+ui.modules.radio = require(HERE..".radialSet")
 
 ui.newRectangleButton = ui.modules.button.newRectangleButton
 ui.newPolygonButton = ui.modules.button.newPolygonButton
@@ -20,6 +21,7 @@ ui.newDial = ui.modules.dial.new
 ui.newScrollViewport = ui.modules.scroll.newViewport
 ui.newSlider = ui.modules.slider.new
 ui.newTextbox = ui.modules.textbox.new
+ui.newRadialSet = ui.modules.radio.new
 
 ui.newSet = ui.modules.set.new
 
