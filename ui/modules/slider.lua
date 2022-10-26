@@ -1,7 +1,7 @@
 
 local slider = {}
 slider.__index = slider
-slider._version = "0.3.10"
+slider._version = "0.4.0"
 
 -- aliases
 local lm = love.mouse
