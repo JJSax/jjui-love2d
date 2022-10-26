@@ -1,13 +1,14 @@
 
 local button = {}
 button.__index = button
-button._version = "0.9.8"
+button._version = "0.9.9"
 
 local ORIGIN = {x = 0, y = 0}
 
 local lg = love.graphics
 local uiRoot = (...):gsub('%.[^%.]*%.[^%.]+$', '')
 local common = require(uiRoot..".common")
+local geometry = require(uiRoot..".geometry")
 local Set = require(uiRoot..".Set")
 
 -------------------------------------------
@@ -204,7 +205,7 @@ function button:draw()
 	if self.shape == lg.arc then
 		if self.textOrientation == "angled" then
 			tr = self:getCenterAngle()
-			txtx, txty = common.vector(tr, self.radius/1.5)
+			txtx, txty = geometry.vector(tr, self.radius/1.5)
 			local halfpi = math.pi/2
 			if tr > halfpi and tr <= halfpi*3 then
 				tr = tr + -math.pi
@@ -333,12 +334,12 @@ function button:inBounds(x,y)
 		end
 		return oddNodes
 	elseif self.shape == lg.circle then
-		return common.dist(x, y, 0 + self.parent.x,0 + self.parent.y) <= self.radius
+		return geometry.dist(x, y, 0 + self.parent.x,0 + self.parent.y) <= self.radius
 	elseif self.shape == lg.arc then
 		local mx, my = love.mouse.getPosition()
-		local mouseAngle = common.angle(mx, my, self.x + self.parent.x, self.y + self.parent.y)
-		local dist = common.dist(x, y, 0 + self.parent.x, 0 + self.parent.y)
-		return common.between(self.angle1, self.angle2, mouseAngle + math.pi) and dist <= self.radius
+		local mouseAngle = geometry.angle(mx, my, self.x + self.parent.x, self.y + self.parent.y)
+		local dist = geometry.dist(x, y, 0 + self.parent.x, 0 + self.parent.y)
+		return geometry.between(self.angle1, self.angle2, mouseAngle + math.pi) and dist <= self.radius
 	end
 end
 
