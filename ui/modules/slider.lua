@@ -1,7 +1,7 @@
 
 local slider = {}
 slider.__index = slider
-slider._version = "0.3.9"
+slider._version = "0.3.10"
 
 -- aliases
 local lm = love.mouse
@@ -17,37 +17,43 @@ local geometry = require(uiRoot..".geometry")
 --------local functions---------
 --------------------------------
 
-local function getSegmentsInLine(self, ax, ay, bx, by)
+local function getSegmentsInLine(self, ax, ay, bx, by, isTrack)
 
+	--@ isTrack is boolean
 	--* return all segment points in line ax, ay, bx, by
 	--* return as {{ax, ay}, {point2x, point2y}}
 
-	local len = geometry.dist(ax, ay, bx, by, true)
-	local points = {{ax, ay}}
+	local mx, my = lm.getPosition()
+	local hovered = false
+	local points = {{ax, ay}} -- first position is implied
+	local len = geometry.dist(ax, ay, bx, by, true) -- length of line (useful for fill)
 	for i, v in ipairs(self.segments) do
-		local np = {geometry.vector2(points[1][1], points[1][2], self.angle, self.length * v[1])}
-		if geometry.dist(ax, ay, np[1], np[2], true) >= len then
+		local np = {geometry.vector2(points[1][1], points[1][2], self.angle, self.length * v[1])} --next point
+		if geometry.dist(ax, ay, np[1], np[2], true) >= len then -- if segment extends beyond line
 			np = {geometry.vector2(points[1][1], points[1][2], self.angle, math.sqrt(len))}
+		end
+		local lastPoint = points[#points]
+		if geometry.pointOnLine(mx, my, lastPoint[1], lastPoint[2], np[1], np[2], self.width) then
+			hovered = {x = lastPoint[1], y = lastPoint[2], x2 = np[1], y2 = np[2], index = i}
+			if not isTrack and self.fill < 0 then
+				return {{bx, by}, {ax, ay}}, hovered
+			end
 		end
 		table.insert(points, np)
 	end
 	if self.fill > 1 then
-		points[#points] = {bx, by} -- combines spillover with last segment
-		-- table.insert(points, {bx, by}) -- spillover becomes new segment
+		-- points[#points] = {bx, by} -- combines spillover with last segment
+		table.insert(points, {bx, by}) -- spillover becomes new segment
 	end
-	return points
+	return points, hovered
 end
 
-local function drawLine(self, segs)
-	--? I'm not doing both lines in the same loop because the last section has different bit.
+local function drawLine(self, segs, hovered)
 	local mx, my = lm.getPosition()
 	lg.push("all")
 	for i, v in ipairs(segs) do
 		if segs[i+1] then
 			local vx, vy = geometry.vector2(v[1], v[2], self.angle, self.segmentGap)
-			if i == #segs then
-				vx, vy = v[1], v[2]
-			end
 			local bx, by = segs[i+1][1], segs[i+1][2]
 			local npx, npy = geometry.nearestPointToLine(mx, my, vx, vy, bx, by)
 			local dist = geometry.distanceToLine(mx, my, npx, npy)
@@ -58,6 +64,30 @@ local function drawLine(self, segs)
 			lg.line(vx, vy, bx, by)
 		end
 	end
+	lg.pop()
+end
+
+local function drawSegmentWord(self, seg)
+	--@ seg is table: {index = index of of hovered in self.segments
+	--@          x = ax, y = ay, x2 = bx, y2 = by}
+	if not seg then return end
+	local ax, ay, bx, by = seg.x, seg.y, seg.x2, seg.y2
+	local segment = self.segments[seg.index]
+
+	lg.push("all")
+	lg.setColor(segment.textColor or {1,1,1,1})
+	local font = segment.font or lg.getFont()
+	lg.setFont(font)
+	local midx, midy = geometry.midPoint(ax, ay, bx, by) -- get mid point of segment
+	-- Get top 90 degree point from mid
+	local perpendicular = -math.pi/2
+	local angle = self.angle
+	if self.a.x > self.b.x then
+		perpendicular = perpendicular + math.pi
+		angle = self.angle + math.pi
+	end
+	local tx, ty = geometry.vector2(midx, midy, self.angle + perpendicular, font:getHeight() + self.hoverExpand)
+	lg.print(segment[2], tx, ty, angle, 1, 1, font:getWidth(segment[2])/2)
 	lg.pop()
 end
 
@@ -142,37 +172,17 @@ function slider:draw()
 	lg.setLineWidth(self.width)
 	local ax, ay, bx, by = self.a.x + self.parent.x, self.a.y + self.parent.y,
 		self.b.x + self.parent.x, self.b.y + self.parent.y
-	local last = 0 -- from this fill level to next
-	local lastPoint = {ax, ay}
-	local mx, my = lm.getPosition()
-	local onSegment, hLastPoint, hNext, seg
-	local seg = getSegmentsInLine(self, ax, ay, bx, by)
+	local seg, hovered = getSegmentsInLine(self, ax, ay, bx, by, true)
 	drawLine(self, seg)
+	drawSegmentWord(self, hovered)
 
 	lg.setColor(self.fillColor)
 	local bx, by = geometry.vector2(ax, ay, self.angle, self.fill * self.length)
-	seg = getSegmentsInLine(self, ax, ay, bx, by)
-	drawLine(self, seg)
-	-- lg.line(ax, ay, bx, by)
-
-	if onSegment then -- draw segment text if hovered
-		lg.push("all")
-		lg.setColor(seg.textColor or {1,1,1,1})
-		local font = seg.font or lg.getFont()
-		lg.setFont(font)
-		local midx, midy = geometry.midPoint(hLastPoint[1], hLastPoint[2], hNext[1], hNext[2])
-		local perpendicular = -math.pi/2
-		local angle = self.angle
-		if self.a.x > self.b.x then
-			perpendicular = perpendicular + math.pi
-			angle = self.angle + math.pi
-		end
-		local tx, ty = geometry.vector2(midx, midy, self.angle + perpendicular, font:getHeight())
-		lg.print(seg[2], tx, ty, angle,
-			1, 1, font:getWidth(seg[2])/2,  font:getHeight()/2
-		)
-		lg.pop()
+	seg, hovered = getSegmentsInLine(self, ax, ay, bx, by, false)
+	if self.fill < 0 then
+		seg = {{bx, by}, {ax, ay}}
 	end
+	drawLine(self, seg)
 
 	if not self.knobImage then return end
 	if self.knobOnHover and self:inBounds(lm.getPosition()) or not self.knobOnHover then
