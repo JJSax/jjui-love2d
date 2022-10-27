@@ -1,5 +1,5 @@
 local common = {
-	_VERSION = "0.0.8"
+	_VERSION = "0.0.9"
 }
 
 common.__index = common
@@ -13,28 +13,8 @@ end
 
 function common.expect(value, vType, paramNum)
 	if type(value) ~= vType then
-		error(string.format("Invalid parameter #%d passed.  Expected %s, got %s.", paramNum, vType, value), 3)
+		error(string.format("Invalid parameter %s passed.  Expected %s, got %s.", paramNum or "", vType, value), 3)
 	end
-end
-
-function common.dist(x1, y1, x2, y2, squared)
-	local dx = x1 - x2
-	local dy = y1 - y2
-	local s = dx * dx + dy * dy
-	return squared and s or math.sqrt(s)
-end
-
-function common.angle(x1, y1, x2, y2)
-	return math.atan2(y2 - y1, x2 - x1)
-end
-
-function common.vector(angle, magnitude)
-	return math.cos(angle) * magnitude, math.sin(angle) * magnitude
-end
-
-function common.vector2(x, y, angle, magnitude)
-	local vx, vy = common.vector(angle, magnitude)
-	return x + vx, y + vy
 end
 
 function common.map(n, start1, stop1, start2, stop2, Clamp)
@@ -98,30 +78,6 @@ end
 
 function common.average(tab)
 	return common.sum(tab) / #tab
-end
-
-function common.pointInRect(x, y, bx, by, bw, bh)
-	return  x > bx
-	and	x < bx + bw
-	and	y > by
-	and	y < by + bh
-end
-
-function common.between(a1, a2, target)
-
-	--@ a1/a2 is first/second angle
-	--@ target is the angle to target point
-	--* Returns true if target angle is between a1 and a2
-
-	local min = math.min(a1, a2)
-	local max = math.max(a1,a2)
-	local diff = max - min
-	local mid = max - diff/2
-
-	local dot = math.cos(mid)*math.cos(target) + math.sin(mid)*math.sin(target)
-	local angle = math.acos(dot)
-
-	return angle <= diff/2
 end
 
 function common.iterateAllStates(self)

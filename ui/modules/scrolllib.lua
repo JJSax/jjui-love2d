@@ -11,10 +11,12 @@
 ]]
 
 local lg = love.graphics
-local common = require((...):gsub('%.[^%.]*%.[^%.]+$', '')..".common")
+local uiRoot = (...):gsub('%.[^%.]*%.[^%.]+$', '')
+local common = require(uiRoot..".common")
+local geometry = require(uiRoot..".geometry")
 
 local scroll = {
-	__version = "0.5.9"
+	__version = "0.5.10"
 }
 scroll.__index = scroll
 scroll.font = lg.newFont(16)
@@ -232,7 +234,7 @@ function scroll:troughClick(x, y, button)
 	-- put in mousepressed
 	-- when clicking the scrollbar this will will follow what is set in self.scrollbar.troughMode
 	-- sets destination, whether immediately jumping, or smoothly transitioning.
-	if common.pointInRect(x, y, self:getScrollbar()) and not common.pointInRect(x, y, self:getThumb()) then
+	if geometry.pointInRect(x, y, self:getScrollbar()) and not geometry.pointInRect(x, y, self:getThumb()) then
 		local npos
 		if self.scrollbar.troughMode == 1 then
 			-- instant jump mode
@@ -292,7 +294,7 @@ function scroll:getThumbDimensions()
 end
 function scroll:inThumbBounds(x, y)
 	-- returns if x,y is inside thumb perimiter
-	return common.pointInRect(x, y, self:getThumb())
+	return geometry.pointInRect(x, y, self:getThumb())
 end
 function scroll:thumbScroll(dt)
 	-- put in update
@@ -326,9 +328,9 @@ end
 ----------------------
 
 function scroll:inBounds(x,y)
-	if common.pointInRect(x, y, self:getViewport()) then
+	if geometry.pointInRect(x, y, self:getViewport()) then
 		return "viewport"
-	elseif self.scrollbar and common.pointInRect(x, y, self:getScrollbar()) then
+	elseif self.scrollbar and geometry.pointInRect(x, y, self:getScrollbar()) then
 		return "trough"
 	end
 	return false
@@ -344,7 +346,7 @@ end
 
 function scroll:getTextAtPos(x, y)
 	if not self.contents.textArray then return false end -- requires text to find text at a position
-	if common.pointInRect(x, self.y+1, self:getViewport()) then
+	if geometry.pointInRect(x, self.y+1, self:getViewport()) then
 		y = y - self.yScroll
 		local height = 0
 		for k,v in pairs(self.contents.textArray) do
