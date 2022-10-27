@@ -13,7 +13,7 @@ end
 
 function common.expect(value, vType, paramNum)
 	if type(value) ~= vType then
-		error(string.format("Invalid parameter #%d passed.  Expected %s, got %s.", paramNum, vType, value), 3)
+		error(string.format("Invalid parameter %s passed.  Expected %s, got %s.", paramNum or "", vType, value), 3)
 	end
 end
 
