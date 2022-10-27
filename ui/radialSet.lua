@@ -28,13 +28,12 @@
 
 ]]
 
-local radial = {}
+local radial = {_VERSION = "0.1.0"}
 radial.__index = radial
 
 local uiRoot = (...):gsub('%.[^%.]+$', '')
 local Set = require(uiRoot..".Set")
 local common = require(uiRoot..".common")
--- local geometry = require(uiRoot..".geometry")
 
 local function setToggle(self)
 	local radio = self
