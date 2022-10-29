@@ -25,8 +25,8 @@ end
 
 function common.max(a, b)
 	-- about twice as fast as math.max, but can only compare two numbers
-	if a < b then return a end
-	return b
+	if a < b then return b end
+	return a
 end
 
 function common.map(n, start1, stop1, start2, stop2, Clamp)
