@@ -10,9 +10,11 @@ local min = common.min
 local max = common.max
 
 local graphics = {
-	_VERSION = "0.0.3",
+	_VERSION = "0.0.4",
 	stack = {},
-	stackLimit = 20 -- how deep the stack limit is
+	stackLimit = 20, -- how deep the stack limit is
+	transform = {x = 0, y = 0},
+	dimensions = {width = lg.getWidth(), height = lg.getHeight()}
 }
 
 --[[
@@ -70,11 +72,10 @@ function graphics.rectangle(...)
 	local mode, x, y, w, h = unpack(input)
 	local lStack = getLastStack()
 	local content = lStack.content
-	local right, bottom = x + w, y + h --! will have to adjust to transform
 	content.left = min(content.left, x)
-	content.right = max(content.right, right)
+	content.right = max(content.right, x + w - lStack.width)
 	content.top = min(content.top, y)
-	content.bottom = min(content.bottom, bottom)
+	content.bottom = max(content.bottom, y + h - lStack.height)
 	lg.rectangle(...)
 end
 function graphics.stencil(...) end
@@ -102,60 +103,84 @@ local function getTrueB(window, b)
 end
 
 function graphics.setScissor(x, y, w, h)
+	--https://github.com/love2d/love/blob/8e7fd10b6fd9b6dce6d61d728271019c28a7213e/src/modules/graphics/Graphics.cpp#L830
 	--@x,y,w,h for custom scissor inside window not related to the window itself
 
+	-- scissor with respect for transform
+
+
+	--! ATTEMPT 3
+	local stl = graphics.stack[#graphics.stack-1]
+	local last = getLastStack()
+	--! Negative x, y draw operations still show outside window
+	local lx, ly = lg.transformPoint(0, 0)
+	local lw, lh = last.width, last.height
+	if not stl then
+		stl = {x = 0, y = 0, width = lg.getWidth(), height = lg.getHeight()}
+	end
+	local l, t, r, b = geometry.rectangleOverlapArea(stl.x, stl.y, stl.width, stl.height, lx, ly, lw, lh)
+	lg.setScissor(l, t, r - l, b - t)
+
 	--! ATTEMPT 2
-		-- local first = graphics.stack[1]
-		-- common.assert(first, "Attempt to scissor outside window stack", 2)
-		-- local lx, ly, lr, lb = 0, 0, first.x + first.width, first.y + first.height
-		-- -- for i, v in ipairs(graphics.stack) do
-		-- for i = 2, #graphics.stack do
-		-- 	local v = graphics.stack[i]
-		-- 	local previous = graphics.stack[i - 1]
-		-- 	lx = lx + v.x
-		-- 	ly = ly + v.y
-
-		-- 	if lx > first.x + first.width or ly > first.y + first.height then
+		-- local lx, ly, lw, lh = 0, 0, lg.getWidth(), lg.getHeight()
+		-- for i, v in ipairs(graphics.stack) do
+		-- 	lx, ly, lw, lh = geometry.rectangleOverlapArea(lx, ly, lw, lh, lx + v.x, ly + v.y, v.width - v.x, v.height - v.y)
+		-- 	-- lx, ly = lx + v.x, ly + v.y
+		-- 	-- lw, lh = lw - v.x, lh - v.y
+		-- 	if lx == false then -- scissor has no area
 		-- 		lg.setScissor(0,0,0,0)
-		-- 		return false
+		-- 		return false -- returning false so user can skip drawing.
 		-- 	end
-
-		-- 	lr = min
 		-- end
-	--
+		-- if not x then
+		-- 	local last = getLastStack()
+		-- 	local lx, ly = lg.inverseTransformPoint(lx, ly)
+		-- 	lg.setScissor(lx + last.x, ly + last.y, lw - lx, lh - ly)
+		-- 	return true
+		-- end
+
+		-- lx, ly, lw, lh = geometry.rectangleOverlapArea(x, y, w, h, lx, ly, lw, lh)
+		-- if lx == false then
+		-- 	lg.setScissor(0,0,0,0) -- scissor has no area
+		-- 	return false
+		-- end
+		-- lw, lh = lw - x, ly - y
+		-- lg.setScissor(lx, ly, lw, lh)
+		-- return true
 
 	--! ATTEMPT 1
-		local lx, ly, lw, lh = 0, 0, lg.getWidth(), lg.getHeight()
-		lg.setColor(1,0,0)
-		for i, v in ipairs(graphics.stack) do
-			lx, ly, lw, lh = geometry.rectangleOverlapArea(v.x, v.y, v.width, v.height, lx, ly, lw, lh)
-			lw, lh = lw - v.x, lh - v.y
+		-- local lx, ly, lw, lh = 0, 0, lg.getWidth(), lg.getHeight()
+		-- for i, v in ipairs(graphics.stack) do
+		-- 	lx, ly, lw, lh = geometry.rectangleOverlapArea(lx + v.x, ly + v.y, v.width + v.x, v.height + v.y, lx, ly, lw, lh)
+		-- 	lw, lh = lw - v.x, lh - v.y
+		-- 	if lx == false then -- scissor has no area
+		-- 		lg.setScissor(0,0,0,0)
+		-- 		return false -- returning false so user can skip drawing.
+		-- 	end
+		-- end
+		-- if not x then
+		-- 	local lx, ly = lg.inverseTransformPoint(lx, ly)
+		-- 	lg.setScissor(lx, ly, lw, lh)
+		-- 	return true
+		-- end
 
-			if lx == false then
-				lg.setScissor(0,0,0,0) -- scissor has no area
-				return false -- returning false so user can skip drawing.
-			end
-		end
-		if not x then
-			local lx, ly = lg.transformPoint(lx, ly)
-			lg.setScissor(lx, ly, lw, lh)
-			return true
-		end
-
-		lx, ly, lw, lh = geometry.rectangleOverlapArea(x, y, w, h, lx, ly, lw, lh)
-		if lx == false then
-			lg.setScissor(0,0,0,0) -- scissor has no area
-			return false
-		end
-		lg.setScissor(lx, ly, lw, lh)
-		return true
+		-- lx, ly, lw, lh = geometry.rectangleOverlapArea(x, y, w, h, lx, ly, lw, lh)
+		-- if lx == false then
+		-- 	lg.setScissor(0,0,0,0) -- scissor has no area
+		-- 	return false
+		-- end
+		-- lw, lh = lw - x, ly - y
+		-- lg.setScissor(lx, ly, lw, lh)
+		-- return true
 	--
 
 end
 
+
 function graphics.push(window)
 	common.expect(window, "table", 1)
 	common.assert(#graphics.stack < graphics.stackLimit, "Maximum ui stack depth reached (more pushes than pops?)", 3)
+
 	table.insert(graphics.stack, window)
 	if #graphics.stack > 1 then
 		window.parent = graphics.stack[#graphics.stack - 1]
@@ -164,6 +189,7 @@ function graphics.push(window)
 	lg.translate(window.x, window.y)
 	lg.setColor(window.backgroundColor)
 	lg.rectangle("fill", 0, 0, window.width, window.height)
+	-- lg.setScissor(0, 0, window.width, window.height)
 	graphics.setScissor()
 end
 
@@ -172,6 +198,12 @@ function graphics.pop()
 	graphics.stack[#graphics.stack].parent = nil
 	table.remove(graphics.stack)
 	lg.pop()
+end
+
+for k, v in pairs(lg) do
+	if not graphics[k] then
+		graphics[k] = v
+	end
 end
 
 return graphics

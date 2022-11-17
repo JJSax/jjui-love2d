@@ -42,7 +42,6 @@ function window.new(input, ...)
 		local varargs = {...}
 		input = {x = input, y = varargs[1], width = varargs[2], height = varargs[3]}
 	end
-	-- local input = ...
 
 	local self = {
 		x = input[1] or 0,
@@ -72,6 +71,9 @@ function window.new(input, ...)
 
 	return setmetatable(self, window)
 end
+
+function window:update(dt) end
+function window:drawHorizontal() end
 
 function window:requestAttention() end
 
@@ -139,13 +141,11 @@ function window:setMode(width, height, flags)
 
 end
 
-function window:getContentWidth() return self.content.width end
-function window:getContentHeight() return self.content.height end
-function window:getContentDimensions() return self.content.width, self.content.height end
+function window:getContentWidth() return self.content.right end
+function window:getContentHeight() return self.content.bottom end
+function window:getContentDimensions() return self.content.right, self.content.bottom end
 
 
-function window:update(dt) end
-function window:draw() end
 function window:keypressed(key) end
 function window:keyreleased(key) end
 function window:mousepressed(x, y, button, istouch, presses)

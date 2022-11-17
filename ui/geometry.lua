@@ -51,7 +51,7 @@ end
 
 ---- rectangle geometry
 
-function geometry.checkRectangleOverlap(x1, y1, w1, h1, x2, y2, w2, h2)
+function geometry.checkRectangleOverlap(x1, y1, w1, h1, x2, y2, w2, h2) -- tested
     -- if rectangle has area 0, no overlap
     if w1 == 0 or h1 == 0 or w2 == 0 or h2 == 0 then return false end
 
@@ -65,6 +65,7 @@ function geometry.checkRectangleOverlap(x1, y1, w1, h1, x2, y2, w2, h2)
 end
 
 function geometry.rectangleOverlapArea(x1, y1, w1, h1, x2, y2, w2, h2)
+	--@ Returns left, top, right, bottom
 	--! May have issues if width or height is negative
 	if not geometry.checkRectangleOverlap(x1, y1, w1, h1, x2, y2, w2, h2) then return false end
 
