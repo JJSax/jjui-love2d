@@ -52,7 +52,8 @@ function window.new(input, ...)
 		hasFocus = false,
 		fullscreen = false,
 		backgroundColor = {0, 0, 0, 1},
-		borderColor = {0.15, 0.15, 0.1, 1}
+		borderColor = {0.35, 0.35, 0.5, 1},
+		borderWidth = 3
 	}
 	for k, v in pairs(input) do
 		if expectMap[k] then
@@ -155,10 +156,31 @@ function window:mousereleased(x, y, button, istouch, presses)
 	x, y = lg.inverseTransformPoint
 end
 function window:mousemoved(x, y, dx, dy, istouch)
-	x, y = lg.inverseTransformPoint
+	x, y = lg.inverseTransformPoint(x, y)
 end
 function window:wheelmoved(x, y) end
 function window:textinput(text) end
+
+
+function window:getHorizontalThumb()
+	--? return both position and dimensions
+	local contentW = common.min(self.content.x, 0) + self.content.right
+end
+function window:getHorizontalThumbPosition()
+
+end
+function window:getHorizontalThumbDimensions()
+
+end
+
+function window:drawHorizontalBar()
+
+	lg.setColor(0.2,0.2,0.2)
+	lg.rectangle("fill", 0, self.height - 10, self.width, 10)
+	lg.setColor(0.4, 0.4, 0.4)
+	lg.rectangle("fill", 0, self.height - 10, self.width * (self.width / self.content.right), 10)
+
+end -- default draw
 
 return window
 
