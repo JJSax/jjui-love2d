@@ -1,7 +1,7 @@
 
 local button = {}
 button.__index = button
-button._version = "0.9.9"
+button._version = "0.9.91"
 
 local ORIGIN = {x = 0, y = 0}
 
@@ -319,7 +319,7 @@ function button:_OnToggle() end
 -- Returns if x,y position is inside boundary of button
 -- Adapted Polygon Collision from to Stack Overflow user Peter Gilmour
 function button:inBounds(x,y)
-	x, y = lg.inverseTransformPoint(x - self.x, y - self.y)
+	x, y = lg.inverseTransformPoint(x - self.x - self.parent.x, y - self.y - self.parent.y)
 	if self.shape == lg.polygon then
 		local vert = self.vertices
 		local oddNodes = false
@@ -335,11 +335,11 @@ function button:inBounds(x,y)
 		end
 		return oddNodes
 	elseif self.shape == lg.circle then
-		return geometry.dist(x, y, 0 + self.parent.x,0 + self.parent.y) <= self.radius
+		return geometry.dist(x, y, 0, 0) <= self.radius
 	elseif self.shape == lg.arc then
 		local mx, my = love.mouse.getPosition()
 		local mouseAngle = geometry.angle(mx, my, self.x + self.parent.x, self.y + self.parent.y)
-		local dist = geometry.dist(x, y, 0 + self.parent.x, 0 + self.parent.y)
+		local dist = geometry.dist(x, y, 0, 0)
 		return geometry.between(self.angle1, self.angle2, mouseAngle + math.pi) and dist <= self.radius
 	end
 end
