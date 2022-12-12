@@ -28,7 +28,7 @@
 
 ]]
 
-local radial = {_VERSION = "0.1.0"}
+local radial = {_VERSION = "0.1.1"}
 radial.__index = radial
 
 local uiRoot = (...):gsub('%.[^%.]+$', '')
@@ -39,7 +39,7 @@ local function setToggle(self)
 	local radio = self
 	for i, v in ipairs(self.buttons) do
 		function v:_OnToggle()
-			if #radio.buttons > 1 and radio.selected then
+			if #radio.buttons > 1 and radio.selected and radio.selected ~= i then
 				radio.buttons[radio.selected].selected = false
 			end
 			radio.selected = i
