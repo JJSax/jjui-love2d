@@ -191,7 +191,7 @@ end
 function scroll:getViewportHeightPercent()
 	-- return 0-1 of how much viewport shows of content height
 	local theight = self:getContentHeight()
-	return self.height / self:getContentHeight() < 1 and self.height / self:getContentHeight() or 1
+	return self.height / theight < 1 and self.height / theight or 1
 end
 function scroll:getVerticalShown()
 	-- returns bounds of what is shown in viewport.
@@ -300,7 +300,7 @@ function scroll:thumbScroll(dt)
 	-- put in update
 	-- requires thumbClick and thumbRelease
 	if self.thumbClickLocation then
-		local mx, my = love.mouse.getPosition()
+		local _, my = love.mouse.getPosition()
 		local ylev = (
 			math.abs(my - self.scrollbar.y / self.scrollbar.height)
 			- self.scrollbar.y - self.thumbClickLocation[2]
@@ -350,7 +350,7 @@ function scroll:getTextAtPos(x, y)
 		y = y - self.yScroll
 		local height = 0
 		for k,v in pairs(self.contents.textArray) do
-			local dimx, dimy = self:getTextDimensions(v)
+			local _, dimy = self:getTextDimensions(v)
 			height = height + dimy + self.contents.lineBuffer
 			if y - self.y < height then
 				return k
@@ -370,7 +370,7 @@ function scroll:refreshContentHeight()
 	elseif self.contents.textArray then
 		local height = 0
 		for k,v in pairs(self.contents.textArray) do
-			local dimx, dimy = self:getTextDimensions(v)
+			local _, dimy = self:getTextDimensions(v)
 			height = height + dimy
 		end
 		return height + (lines * self.contents.lineBuffer) + self.topBuffer + self.bottomBuffer
@@ -389,7 +389,7 @@ function scroll:getContentHeight(calculate)
 	elseif self.contents.textArray then
 		local height = 0
 		for k,v in pairs(self.contents.textArray) do
-			local dimx, dimy = self:getTextDimensions(v)
+			local _, dimy = self:getTextDimensions(v)
 			height = height + dimy
 		end
 		self.contentHeightCache = height + (#self.contents.textArray * self.contents.lineBuffer) + self.topBuffer + self.bottomBuffer
@@ -453,7 +453,7 @@ function scroll:draw(f, width, height)
 				)
 				if height > -bottom then break end
 			end
-			local w, h = self:getTextDimensions(v)
+			local _, h = self:getTextDimensions(v)
 			previousHeight = h + self.contents.lineBuffer
 			height = height + h + self.contents.lineBuffer
 		end

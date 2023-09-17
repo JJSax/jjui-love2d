@@ -335,7 +335,7 @@ function textbox:update(dt)
 		end
 		if self.selecting then
 			if love.mouse.isDown(1) then --not self.lastClick then
-				local char = self:getClickCharacter(love.mouse.getPosition())
+				-- local char = self:getClickCharacter(love.mouse.getPosition())
 				-- print(char)
 				self:selectionEnd(self:getClickCharacter(love.mouse.getPosition()))
 			end
@@ -364,11 +364,9 @@ function textbox:draw()
 	lg.setScissor(self.x, self.y, self.width, self.height)
 	local text = self:getShownText()
 	if text == "" then text = self.placeholder end
-	local textX = self.x + self.textOffset
 	local textY = self.y + self.height/2 - self.font:getHeight()/2
 	if self.hasFocus then -- draw caret
 		if self.caretBlinkTimer > 0 then
-			local textWidth = self.font:getWidth(text)
 			local caretX = self:getAbsCaretPos(2)
 			lg.setLineWidth(self.caretWidth)
 			lg.setColor(self.caretColor)

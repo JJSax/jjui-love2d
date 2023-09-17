@@ -32,7 +32,6 @@ local radial = {_VERSION = "0.1.1"}
 radial.__index = radial
 
 local uiRoot = (...):gsub('%.[^%.]+$', '')
-local Set = require(uiRoot..".Set")
 local common = require(uiRoot..".common")
 
 local function setToggle(self)
@@ -48,13 +47,11 @@ local function setToggle(self)
 end
 
 function radial.new(...)
-	local input = {...}
 	local self = setmetatable({}, radial)
 
 	self.buttons = {...}
 	self.selected = nil
 
-	local radio = self
 	for i, v in ipairs(self.buttons) do
 		setToggle(self)
 	end
@@ -62,7 +59,6 @@ function radial.new(...)
 end
 
 function radial:add(...)
-	local radio = self
 	local object = {...}
 	for i, v in ipairs(object) do
 		table.insert(self.buttons, v)

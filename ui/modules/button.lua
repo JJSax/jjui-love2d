@@ -353,7 +353,7 @@ end
 -- If you want the button to have a toggled on/off state,
 	-- run this inside it's onPress or onRelease functions
 function button:toggle(bool)
-	self.selected = bool and bool or not self.selected
+	self.selected = bool ~= nil and bool or not self.selected
 	self:_OnToggle()
 end
 

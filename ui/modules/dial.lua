@@ -17,7 +17,6 @@ local dial = {}
 dial.__index = dial
 dial._version = "0.4.3"
 
-local lg = love.graphics
 local ORIGIN = {x = 0, y = 0}
 
 local common = require((...):gsub('%.[^%.]*%.[^%.]+$', '')..".common")
