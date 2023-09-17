@@ -1,7 +1,9 @@
 
-local geometry = {}
+local geometry = {_VERSION = "0.0.5"}
 local uiRoot = (...):gsub('%.[^%.]+$', '')
 local common = require(uiRoot..".common")
+
+local min, max = common.min, common.max
 
 geometry.angles = {
 	left = 0,
@@ -43,8 +45,8 @@ function geometry.between(a1, a2, target)
 	--@ target is the angle to target point
 	--* Returns true if target angle is between a1 and a2
 
-	local min = math.min(a1, a2)
-	local max = math.max(a1,a2)
+	local min = min(a1, a2)
+	local max = max(a1,a2)
 	local diff = max - min
 	local mid = max - diff/2
 
@@ -53,6 +55,40 @@ function geometry.between(a1, a2, target)
 
 	return angle <= diff/2
 end
+
+---- rectangle geometry
+
+function geometry.checkRectangleOverlap(x1, y1, w1, h1, x2, y2, w2, h2) -- tested
+    -- if rectangle has area 0, no overlap
+    if w1 == 0 or h1 == 0 or w2 == 0 or h2 == 0 then return false end
+
+    -- If one rectangle is on left side of other
+    if x1 + w1 < x2 or x2 + w2 < x1 then return false end
+
+    -- If one rectangle is above other
+    if y1 + h1 < y2 or y2 + h2 < y1 then return false end
+
+    return true
+end
+
+function geometry.rectangleOverlapArea(x1, y1, w1, h1, x2, y2, w2, h2)
+	--@ Returns left, top, right, bottom
+	--! May have issues if width or height is negative
+	if not geometry.checkRectangleOverlap(x1, y1, w1, h1, x2, y2, w2, h2) then return false end
+
+	local x, y = max(x1, x2), max(y1, y2)
+	local w, h = min(x1 + w1, x2 + w2), min(y1 + h1, y2 + h2)
+	return x, y, w, h
+end
+
+function geometry.pointInRect(x, y, bx, by, bw, bh)
+	return  x > bx
+	   and	x < bx + bw
+	   and	y > by
+	   and	y < by + bh
+end
+
+ ---- Line Geometry
 
 function geometry.midPoint(ax, ay, bx, by)
 	local dist = geometry.dist(ax, ay, bx, by)/2
