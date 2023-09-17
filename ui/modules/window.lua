@@ -17,7 +17,7 @@ local lg = love.graphics
 
 local uiRoot = (...):gsub('%.[^%.]*%.[^%.]+$', '')
 local common = require(uiRoot..".common")
-local geometry = require(uiRoot..".geometry")
+-- local geometry = require(uiRoot..".geometry")
 
 local window = {_VERSION = "0.0.5"}
 window.__index = window

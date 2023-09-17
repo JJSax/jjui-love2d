@@ -51,7 +51,7 @@ function graphics.circle(...)
 	content.top = min(content.top, top)
 	content.bottom = min(content.bottom, bottom)
 	--! if inside scissor then draw...
-	local last = getLastStack()
+	-- local last = getLastStack()
 	-- lg.translate(last.x, last.y)
 	lg.circle(...)
 end
@@ -65,7 +65,19 @@ end
 -- function graphics.line(...) end
 -- function graphics.points(...) end
 -- function graphics.polygon(...) end
--- function graphics.print(...) end
+function graphics.print(...)
+	local input = {...}
+	local font = lg.getFont()
+	local text, x, y = unpack(input)
+	local w, h = font:getWidth(text), font:getHeight(text)
+	local content = getLastStack().content
+	local left, top, right, bottom = x, y, x + w, y + h --! will have to adjust to window transform
+	content.left = min(content.left, left)
+	content.right = max(content.right, right)
+	content.top = min(content.top, top)
+	content.bottom = min(content.bottom, bottom)
+	lg.print(...)
+end
 -- function graphics.printf(...) end
 function graphics.rectangle(...)
 	local input = {...}
