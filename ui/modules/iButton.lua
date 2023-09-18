@@ -80,7 +80,7 @@ function button.rect(input)
 	local pressed = false
 	if geometry.pointInRect(mx, my, x, y, w, h) then
 		local shade = input.shading or 0.25
-		shade = mousepressed and shade * 1.75 or shade
+		shade = mousepressed and shade * 1.5 or shade
 		if click then
 			pressed = true
 		end
