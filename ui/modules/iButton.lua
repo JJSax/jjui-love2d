@@ -9,6 +9,9 @@ local lg = love.graphics
 local outlineColor = {0.6, 0.6, 0.6, 1}
 local textColor = {1,1,1,1}
 local mousepressed = false
+local uiRoot = (...):gsub('%.[^%.]*%.[^%.]+$', '')
+local common = require(uiRoot..".common")
+local geometry = require(uiRoot..".geometry")
 
 local function setColor(...)
 	local args = {...}
@@ -27,14 +30,6 @@ function button.setTextColor(...) textColor = setColor(...) end
 function button.getOutlineColor() return {outlineColor[1], outlineColor[2], outlineColor[3], outlineColor[4]} end
 function button.getTextColor() return {textColor[1], textColor[2], textColor[3], textColor[4]} end
 
-local function inBounds(px, py, x, y, w, h)
-	px, py = lg.inverseTransformPoint(px, py)
-	return  px >= x
-		and px < x + w
-		and py >= y
-		and py < y + h
-end
-
 local xmap = {
 	center = function(w) return lg.getWidth()/2 - w/2 end,
 	right = function(w) return lg.getWidth() - w end
@@ -42,11 +37,18 @@ local xmap = {
 local drawCache = love.draw
 --? will have to consider if this will break some things on other projects
 function love.draw() drawCache() mousepressed = love.mouse.isDown(1) end
-function button.rect(x, y, w, h, input)
+function button.rect(input)
+	local x, y, w, h = unpack(input)
 
 	if xmap[x] then x = xmap[x](w) end
 	assert(x and y and w and h, "Drawing a button requires an position and dimensions")
 	input = input or {}
+
+	if input.relative then
+		-- relative to window size
+		w = common.clamp(lg.getWidth() * w, input.minWidth or -math.huge, input.maxWidth or math.huge)
+		h = common.clamp(lg.getHeight() * h, input.minHeight or -math.huge, input.maxHeight or math.huge)
+	end
 
 	lg.push("all")
 	local mx, my = love.mouse.getPosition()
@@ -76,9 +78,9 @@ function button.rect(x, y, w, h, input)
 	end
 
 	local pressed = false
-	if inBounds(mx, my, x, y, w, h) then
+	if geometry.pointInRect(mx, my, x, y, w, h) then
 		local shade = input.shading or 0.25
-		shade = mousepressed and shade * 2 or shade
+		shade = mousepressed and shade * 1.75 or shade
 		if click then
 			pressed = true
 		end
@@ -88,19 +90,5 @@ function button.rect(x, y, w, h, input)
 	lg.pop()
 	return pressed
 end
-
--- function button:keypressed(key, scancode, isrepeat) end
--- function button:keyreleased(key, scancode) end
--- function button:mousepressed(x, y, button, istouch, presses)
-
-	-- self:callback(x, y, button, istouch, presses)
--- end
--- function button:mousereleased(x, y, button, istouch, presses) end
--- function button:mousemoved(x, y, dx, dy, istouch) end
--- function button:wheelmoved(x, y) end
--- function button:textinput(text) end
-
--- function button:callback() end
-
 
 return button

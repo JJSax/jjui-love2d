@@ -82,10 +82,11 @@ function geometry.rectangleOverlapArea(x1, y1, w1, h1, x2, y2, w2, h2)
 end
 
 function geometry.pointInRect(x, y, bx, by, bw, bh)
-	return  x > bx
-	   and	x < bx + bw
-	   and	y > by
-	   and	y < by + bh
+	local px, py = love.graphics.inverseTransformPoint(x, y)
+	return  px > bx
+	   and	px < bx + bw
+	   and	py > by
+	   and	py < by + bh
 end
 
  ---- Line Geometry
