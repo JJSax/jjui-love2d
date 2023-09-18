@@ -27,8 +27,8 @@ end
 function button.setOutlineColor(...) outlineColor = setColor(...) end
 function button.setTextColor(...) textColor = setColor(...) end
 
-function button.getOutlineColor() return {outlineColor[1], outlineColor[2], outlineColor[3], outlineColor[4]} end
-function button.getTextColor() return {textColor[1], textColor[2], textColor[3], textColor[4]} end
+function button.getOutlineColor() return unpack(outlineColor) end
+function button.getTextColor() return unpack(textColor) end
 
 local xmap = {
 	center = function(w) return lg.getWidth()/2 - w/2 end,
